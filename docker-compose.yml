@@ -1,0 +1,21 @@
+services:
+  qroute:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      # Generate with: php bin/console key:generate
+      APP_KEY: "${APP_KEY:?set APP_KEY in your environment or a .env file}"
+      APP_URL: "${APP_URL:-http://localhost:8080}"
+      APP_DEBUG: "false"
+      DB_DRIVER: sqlite
+      DB_PATH: /var/www/qroute/storage/qroute.sqlite
+      # Docker publishes the port through a NAT, so the app sits behind a
+      # proxy from its own point of view.
+      TRUSTED_PROXIES: ""
+    volumes:
+      - qroute-data:/var/www/qroute/storage
+    restart: unless-stopped
+
+volumes:
+  qroute-data:

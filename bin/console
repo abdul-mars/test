@@ -1,0 +1,173 @@
+#!/usr/bin/env php
+<?php
+declare(strict_types=1);
+
+/**
+ * QRoute command line tool.
+ *
+ *   php bin/console migrate            apply pending migrations
+ *   php bin/console key:generate       print a fresh APP_KEY
+ *   php bin/console rollup [days]      aggregate scans, prune raw rows
+ *   php bin/console gc                 prune sessions and rate limit windows
+ *   php bin/console seed               create a demo account with sample data
+ *   php bin/console user:plan <email> <plan>
+ *   php bin/console stats
+ */
+
+require __DIR__ . '/../src/bootstrap.php';
+
+use QRoute\Core\Config;
+use QRoute\Core\Database;
+use QRoute\Core\Migrator;
+use QRoute\Core\RateLimiter;
+use QRoute\Core\Security;
+use QRoute\Core\Session;
+use QRoute\Models\Link;
+use QRoute\Models\Rule;
+use QRoute\Models\User;
+use QRoute\Services\Analytics;
+use QRoute\Services\Plan;
+
+if (PHP_SAPI !== 'cli') {
+    fwrite(STDERR, "This tool is for the command line only.\n");
+    exit(1);
+}
+
+$command = $argv[1] ?? 'help';
+$args = array_slice($argv, 2);
+
+function out(string $line = ''): void { fwrite(STDOUT, $line . "\n"); }
+function fail(string $line): never { fwrite(STDERR, $line . "\n"); exit(1); }
+
+try {
+    switch ($command) {
+
+        case 'migrate':
+            $migrator = new Migrator(Database::instance(), dirname(__DIR__) . '/migrations');
+            $ran = $migrator->migrate(static fn(string $n) => out("  applied {$n}"));
+            out($ran === [] ? 'Nothing to migrate; schema is current.' : 'Applied ' . count($ran) . ' migration(s).');
+            break;
+
+        case 'key:generate':
+            out(Security::generateKey());
+            out('');
+            out('Add this to your .env as APP_KEY. Changing it later invalidates');
+            out('all sessions and visitor hashes, so set it once before launch.');
+            break;
+
+        case 'rollup':
+            $retention = (int) ($args[0] ?? Config::int('RAW_SCAN_RETENTION_DAYS', 90));
+            $result = Analytics::rollup($retention);
+            out("Rolled up {$result['days']} link-days into {$result['rows']} rows.");
+            out("Pruned {$result['pruned']} raw scan rows older than {$retention} days.");
+            break;
+
+        case 'gc':
+            $sessions = Session::prune();
+            $buckets = RateLimiter::prune();
+            out("Removed {$sessions} expired session(s) and {$buckets} rate limit window(s).");
+            break;
+
+        case 'user:plan':
+            $email = $args[0] ?? fail('Usage: user:plan <email> <free|pro|team>');
+            $plan = $args[1] ?? fail('Usage: user:plan <email> <free|pro|team>');
+            if (!isset(Plan::PLANS[$plan])) {
+                fail('Unknown plan: ' . $plan . '. Valid: ' . implode(', ', array_keys(Plan::PLANS)));
+            }
+            $user = User::findByEmail($email) ?? fail('No user with that email.');
+            $user->setPlan($plan, $plan === User::PLAN_FREE ? null : time() + 365 * 86400);
+            out("{$email} is now on the " . Plan::displayName($plan) . ' plan.');
+            break;
+
+        case 'stats':
+            $db = Database::instance();
+            out('Users   : ' . $db->scalar('SELECT COUNT(*) FROM users'));
+            out('Links   : ' . $db->scalar('SELECT COUNT(*) FROM links WHERE archived_at IS NULL'));
+            out('Rules   : ' . $db->scalar('SELECT COUNT(*) FROM rules'));
+            out('Scans   : ' . $db->scalar('SELECT COUNT(*) FROM scans'));
+            out('Rollups : ' . $db->scalar('SELECT COUNT(*) FROM scan_daily'));
+            break;
+
+        case 'seed':
+            $email = $args[0] ?? 'demo@qroute.test';
+            $password = $args[1] ?? 'demo-password-123';
+
+            $existing = User::findByEmail($email);
+            if ($existing !== null) {
+                fail("A user with {$email} already exists.");
+            }
+
+            $result = User::register($email, $password, 'Demo Account');
+            if (!$result['ok'] || $result['user'] === null) {
+                fail('Could not create demo user: ' . $result['error']);
+            }
+            $user = $result['user'];
+            $user->setPlan(User::PLAN_PRO, time() + 365 * 86400);
+
+            $link = Link::create($user->id(), 'demo-menu', 'https://example.com/menu', [
+                'title' => 'Restaurant table tent',
+            ]);
+            Rule::create($link->id(), 'https://apps.apple.com/app/id000000',
+                ['os' => ['ios']], 'iOS to the App Store');
+            Rule::create($link->id(), 'https://play.google.com/store/apps/details?id=com.example',
+                ['os' => ['android']], 'Android to Google Play');
+            Rule::create($link->id(), 'https://example.com/menu/dinner',
+                ['schedule' => ['tz' => 'UTC', 'from' => '17:00', 'to' => '23:00']], 'Dinner menu after 5pm');
+
+            // A month of plausible scan history so the dashboard is not empty.
+            $devices = ['mobile', 'mobile', 'mobile', 'tablet', 'desktop'];
+            $oses = ['ios', 'ios', 'android', 'android', 'windows'];
+            $countries = ['US', 'US', 'GB', 'DE', 'FR', 'AU'];
+            $total = 0;
+            for ($d = 29; $d >= 0; $d--) {
+                $dayScans = random_int(4, 40);
+                for ($i = 0; $i < $dayScans; $i++) {
+                    $ts = time() - $d * 86400 - random_int(0, 86399);
+                    $idx = random_int(0, 4);
+                    Analytics::record($link->id(), $user->id(), null, [
+                        'now'     => $ts,
+                        'device'  => $devices[$idx],
+                        'os'      => $oses[$idx],
+                        'browser' => ['safari', 'chrome', 'firefox'][random_int(0, 2)],
+                        'country' => $countries[random_int(0, 5)],
+                        'lang'    => 'en',
+                        'referer' => '',
+                        'is_bot'  => false,
+                        'ip'      => '203.0.113.' . random_int(1, 254),
+                        'ua'      => 'seed-' . random_int(1, 9999),
+                    ]);
+                    $total++;
+                }
+            }
+            Database::instance()->run(
+                'UPDATE links SET scan_count = :c, last_scan_at = :t WHERE id = :id',
+                ['c' => $total, 't' => time(), 'id' => $link->id()]
+            );
+
+            out('Demo account created.');
+            out("  email    : {$email}");
+            out("  password : {$password}");
+            out("  plan     : Pro");
+            out("  code     : /{$link->slug()} with 3 rules and {$total} scans");
+            break;
+
+        case 'help':
+        default:
+            out('QRoute console');
+            out('');
+            out('  migrate                   Apply pending database migrations');
+            out('  key:generate              Print a new APP_KEY');
+            out('  rollup [retentionDays]    Aggregate scans into daily rows, prune raw');
+            out('  gc                        Prune expired sessions and rate limit windows');
+            out('  seed [email] [password]   Create a demo account with sample data');
+            out('  user:plan <email> <plan>  Move a user to free, pro or team');
+            out('  stats                     Row counts');
+            out('');
+            out('Cron suggestions:');
+            out('  */10 * * * *  php bin/console gc');
+            out('  17 3   * * *  php bin/console rollup');
+            break;
+    }
+} catch (\Throwable $e) {
+    fail('Error: ' . $e->getMessage());
+}

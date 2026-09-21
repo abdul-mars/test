@@ -1,0 +1,114 @@
+[
+    {
+        "text": "https://qrt.to/Ab3Xk9",
+        "ecc": "M",
+        "version": 2,
+        "mask": 5,
+        "size": 25,
+        "sha256": "06deb3b7ec2b77391685f6f6f5bb220c1315d7d585e61a31379bc6ea4a8049fd"
+    },
+    {
+        "text": "https://qrt.to/Ab3Xk9",
+        "ecc": "H",
+        "version": 3,
+        "mask": 4,
+        "size": 29,
+        "sha256": "2353b2262511c35c3225602adefc4c29f5818ec753c1aad5cb06931461e7b680"
+    },
+    {
+        "text": "abc",
+        "ecc": "Q",
+        "version": 1,
+        "mask": 0,
+        "size": 21,
+        "sha256": "4b99c7eed3d03f359e8b15fd3c826d2525ebc32971e753446319a238fdca78b7"
+    },
+    {
+        "text": "HELLO WORLD",
+        "ecc": "Q",
+        "version": 1,
+        "mask": 0,
+        "size": 21,
+        "sha256": "7cb519f187a1f6d6294385b11fd9d65487509b897a600c9c5e6398297cd45222"
+    },
+    {
+        "text": "12345678901234567890",
+        "ecc": "M",
+        "version": 1,
+        "mask": 4,
+        "size": 21,
+        "sha256": "d6cc0e93bf44fdca66b2e71f28b4e57deb639046a8f8b75b3b8ebd3f7177c2ae"
+    },
+    {
+        "text": "0",
+        "ecc": "L",
+        "version": 1,
+        "mask": 2,
+        "size": 21,
+        "sha256": "60d4883c6df4b7d58bda402659a66942dce4fe7576c6a160e3d38633ef1b0aab"
+    },
+    {
+        "text": "https://example.com/menu?table=12&utm_source=qr",
+        "ecc": "M",
+        "version": 4,
+        "mask": 1,
+        "size": 33,
+        "sha256": "b732185e07d9a0ef46b32e40464a0dbe74e0175ffd1061de87a9102382a25e27"
+    },
+    {
+        "text": "tel:+15551234567",
+        "ecc": "M",
+        "version": 2,
+        "mask": 3,
+        "size": 25,
+        "sha256": "bc7b0312511d5a14e6f730ce0b80779915a088856f09e5176494c15c53aa66ea"
+    },
+    {
+        "text": "mailto:hi@qrt.to",
+        "ecc": "L",
+        "version": 1,
+        "mask": 1,
+        "size": 21,
+        "sha256": "eb521fd52d68be132108d6bfa2ef4c71ad2226645f24e8c5645096cacf752b86"
+    },
+    {
+        "text": "Ünïcødé ✓ 日本語テスト 🎉",
+        "ecc": "M",
+        "version": 3,
+        "mask": 6,
+        "size": 29,
+        "sha256": "590ee9c712995ad221f7add5e505005c7d6fa911b7928414c95a19d84724073a"
+    },
+    {
+        "text": "WIFI:T:WPA;S:Cafe;P:hunter22;;",
+        "ecc": "Q",
+        "version": 3,
+        "mask": 3,
+        "size": 29,
+        "sha256": "8581e5d1dacc42a0b088081aff0fd04134f4e56591f194cb71b4948a47e33c50"
+    },
+    {
+        "text": "myapp://open?id=42",
+        "ecc": "H",
+        "version": 3,
+        "mask": 2,
+        "size": 29,
+        "sha256": "a11ce1f370e20475cdd6dfae6382c9aea34e11f29351b0385d1ac671cc709924"
+    },
+    {
+        "text": "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ",
+        "ecc": "L",
+        "version": 18,
+        "mask": 1,
+        "size": 89,
+        "sha256": "aee832bca81ac59eaaae7f0285e57ed6e9e129cd25c87120079077168aca0721"
+    },
+    {
+        "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "ecc": "Q",
+        "version": 16,
+        "mask": 2,
+        "size": 81,
+        "sha256": "e5f17a34efab896d812aa48b04904d1cdfefe623070652474c6dc802a5beaa22"
+    }
+]

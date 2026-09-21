@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_sqlite, gd, mbstring, intl
+          coverage: none
+          tools: none
+
+      - name: Lint every PHP file
+        run: |
+          find src public bin tests migrations -name '*.php' -print0 \
+            | xargs -0 -n1 -P4 php -l > /dev/null
+          php -l bin/console > /dev/null
+
+      - name: Run the test suite
+        run: php tests/run.php
+
+      - name: Verify migrations apply from scratch
+        env:
+          DB_DRIVER: sqlite
+          DB_PATH: /tmp/ci.sqlite
+          APP_KEY: base64:Y2lrZXljaWtleWNpa2V5Y2lrZXljaWtleWNpaz0=
+        run: |
+          php bin/console migrate
+          php bin/console migrate   # must be idempotent
+          php bin/console stats
+
+      - name: Smoke test the HTTP surface
+        env:
+          DB_DRIVER: sqlite
+          DB_PATH: /tmp/smoke.sqlite
+          APP_KEY: base64:Y2lrZXljaWtleWNpa2V5Y2lrZXljaWtleWNpaz0=
+          APP_URL: http://127.0.0.1:8899
+        run: |
+          php bin/console migrate
+          php bin/console seed ci@example.test ci-password-1234
+          php -S 127.0.0.1:8899 -t public public/index.php &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8899/health && break || sleep 0.3
+          done
+          fail=0
+          check() {
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8899$1")
+            if [ "$code" != "$2" ]; then
+              echo "FAIL $1 expected $2 got $code"; fail=1
+            else
+              echo "ok   $1 -> $code"
+            fi
+          }
+          check /            200
+          check /pricing     200
+          check /login       200
+          check /register    200
+          check /docs        200
+          check /robots.txt  200
+          check /health      200
+          check /app         302
+          check /api/v1/me   401
+          check /demo-menu   302
+          check /qr/demo-menu.svg 200
+          check /qr/demo-menu.png 200
+          check /no-such-code     404
+          # Regression: php -S routes everything through index.php, so the
+          # front controller has to hand real files back to the server.
+          check /assets/app.css   200
+          check /assets/app.js    200
+          check /assets/icon.svg  200
+          # The front controller itself must not be servable as a static file.
+          check /index.php        404
+          # A rendered page must never leak a PHP warning.
+          for page in / /pricing /app/links/1 /qr/demo-menu.svg; do
+            if curl -sL --cookie-jar /tmp/cj "http://127.0.0.1:8899$page" \
+               | grep -qiE '<b>(warning|fatal error|notice|deprecated)</b>'; then
+              echo "FAIL: PHP diagnostic leaked into $page"; fail=1
+            fi
+          done
+          exit $fail

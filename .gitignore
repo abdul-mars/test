@@ -1,0 +1,7 @@
+.env
+storage/*.sqlite
+storage/*.sqlite-wal
+storage/*.sqlite-shm
+storage/logs/
+vendor/
+.DS_Store
