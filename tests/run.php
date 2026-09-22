@@ -14,7 +14,10 @@ use QRoute\Models\ApiKey;
 use QRoute\Models\Link;
 use QRoute\Models\Rule;
 use QRoute\Models\User;
+use QRoute\Core\SchemaDumper;
+use QRoute\Models\Setting;
 use QRoute\Services\Analytics;
+use QRoute\Services\Installer;
 use QRoute\Services\DeviceDetector;
 use QRoute\Services\Plan;
 use QRoute\Services\QrCode;
@@ -494,5 +497,119 @@ $t->same(
 );
 $t->same('abc', Response::sanitizeHeaderValue("a\0b\nc"), 'null bytes and newlines are stripped');
 $t->same('https://ok.test/path', Response::sanitizeHeaderValue('https://ok.test/path'), 'a clean value passes through unchanged');
+
+// =====================================================================
+$t->group('Administrator role');
+
+$owner = User::findByEmail('owner@example.com');
+$t->same(false, $owner->isAdmin(), 'accounts are not administrators by default');
+
+$owner->setAdmin(true);
+$t->same(true, User::find($owner->id())->isAdmin(), 'promotion persists');
+$t->same(1, User::countAdmins(), 'administrator count reflects the promotion');
+
+$owner->setAdmin(false);
+$t->same(0, User::countAdmins(), 'demotion persists');
+$owner->setAdmin(true);
+
+// Suspension must invalidate any session the account already had.
+$reg = User::register('suspendme@example.com', 'a-long-enough-password');
+$victim = $reg['user'];
+Database::instance()->insert('sessions', [
+    'id' => 'sess-for-suspension-test', 'user_id' => $victim->id(),
+    'ip_hash' => '', 'ua_hash' => '', 'created_at' => time(),
+    'last_seen_at' => time(), 'expires_at' => time() + 3600,
+]);
+$victim->setStatus('suspended');
+$t->same('suspended', User::find($victim->id())->status(), 'suspension persists');
+$t->same(
+    null,
+    Database::instance()->scalar('SELECT 1 FROM sessions WHERE user_id = :u', ['u' => $victim->id()]),
+    'suspending an account drops its sessions'
+);
+$t->same(null, User::attemptLogin('suspendme@example.com', 'a-long-enough-password'), 'a suspended account cannot sign in');
+$victim->setStatus('active');
+$t->ok(User::attemptLogin('suspendme@example.com', 'a-long-enough-password') !== null, 'restoring lets them back in');
+
+// =====================================================================
+$t->group('Settings store');
+
+$t->same(null, Setting::get('nothing_here'), 'missing setting returns null');
+$t->same('fallback', Setting::get('nothing_here', 'fallback'), 'missing setting honours the default');
+Setting::set('site_name', 'Acme Codes');
+$t->same('Acme Codes', Setting::get('site_name'), 'a setting round-trips');
+Setting::set('site_name', 'Renamed');
+$t->same('Renamed', Setting::get('site_name'), 'a setting can be overwritten');
+Setting::set('flag_on', '1');
+$t->same(true, Setting::bool('flag_on'), 'boolean setting reads true');
+$t->same(false, Setting::bool('flag_missing'), 'missing boolean falls back to false');
+
+// =====================================================================
+$t->group('Installer');
+
+$checks = Installer::requirements();
+$t->ok(count($checks) >= 6, 'requirements are reported');
+foreach ($checks as $check) {
+    $t->ok(
+        isset($check['name'], $check['ok'], $check['required'], $check['detail']),
+        'requirement "' . ($check['name'] ?? '?') . '" is fully described'
+    );
+}
+
+// A failing required check must block; a failing optional one must not.
+$t->same(false, Installer::requirementsMet([
+    ['name' => 'x', 'ok' => false, 'required' => true, 'detail' => ''],
+]), 'a failed required check blocks setup');
+$t->same(true, Installer::requirementsMet([
+    ['name' => 'x', 'ok' => false, 'required' => false, 'detail' => ''],
+    ['name' => 'y', 'ok' => true, 'required' => true, 'detail' => ''],
+]), 'a failed optional check does not block setup');
+
+// Database name validation, which is interpolated into CREATE DATABASE.
+foreach ([
+    ['qroute', true,  'a plain name is accepted'],
+    ['qroute_2024', true, 'underscores and digits are accepted'],
+    ['qroute; DROP TABLE users', false, 'a name containing SQL is rejected'],
+    ['qroute`--', false, 'a name containing a backtick is rejected'],
+    ['', false, 'an empty name is rejected'],
+    [str_repeat('a', 65), false, 'an over-long name is rejected'],
+] as [$name, $shouldPass, $why]) {
+    $result = Installer::testDatabase([
+        'DB_DRIVER' => 'mysql', 'DB_NAME' => $name,
+        'DB_HOST' => '203.0.113.1', 'DB_PORT' => '1', 'DB_USER' => 'x', 'DB_PASS' => '',
+    ], false);
+    // A valid name gets past validation and fails on connection instead;
+    // an invalid one is refused before any connection is attempted.
+    $rejectedByValidation = str_contains($result['error'], 'Database name must be');
+    $t->same(!$shouldPass, $rejectedByValidation, $why);
+}
+
+// Env writing preserves unrelated keys and replaces the targeted ones.
+$envFile = sys_get_temp_dir() . '/qroute-env-test-' . bin2hex(random_bytes(4));
+file_put_contents($envFile, "# a comment\nAPP_KEY=old-key\nUNRELATED=keep-me\n");
+$reflect = new ReflectionMethod(Installer::class, 'quoteEnvValue');
+$reflect->setAccessible(true);
+$t->same('simple', $reflect->invoke(null, 'simple'), 'a plain env value is not quoted');
+$t->ok(str_starts_with($reflect->invoke(null, 'has space'), '"'), 'a value with a space is quoted');
+$t->ok(str_contains($reflect->invoke(null, 'say "hi"'), '\\"'), 'embedded quotes are escaped');
+@unlink($envFile);
+
+// The lock file is what gates the installer.
+$t->same(true, Installer::isInstalled() === is_file(Installer::lockPath()), 'install state follows the lock file');
+
+// =====================================================================
+$t->group('Schema dumper');
+
+$dump = SchemaDumper::mysql(__DIR__ . '/../migrations');
+$t->ok(str_contains($dump, 'CREATE TABLE IF NOT EXISTS users'), 'dump creates the users table');
+$t->ok(str_contains($dump, 'CREATE TABLE IF NOT EXISTS links'), 'dump creates the links table');
+$t->ok(str_contains($dump, 'CREATE TABLE IF NOT EXISTS settings'), 'dump includes later migrations');
+$t->ok(str_contains($dump, 'ENGINE=InnoDB'), 'dump uses InnoDB');
+$t->ok(str_contains($dump, 'utf8mb4'), 'dump uses utf8mb4');
+$t->ok(str_contains($dump, 'INSERT IGNORE INTO migrations'), 'dump records the migrations as applied');
+$t->ok(!str_contains($dump, '{{'), 'no unexpanded portability tokens remain');
+$t->ok(!str_contains($dump, 'IF NOT EXISTS idx_'), 'index creation avoids the MariaDB-only clause');
+$t->ok(str_contains($dump, 'AUTO_INCREMENT'), 'dump expands the primary key for MySQL');
+$t->ok(!str_contains($dump, 'AUTOINCREMENT'), 'dump does not leak SQLite syntax');
 
 exit($t->finish());

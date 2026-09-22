@@ -26,6 +26,7 @@ use QRoute\Models\Link;
 use QRoute\Models\Rule;
 use QRoute\Models\User;
 use QRoute\Services\Analytics;
+use QRoute\Services\Installer;
 use QRoute\Services\Plan;
 
 if (PHP_SAPI !== 'cli') {
@@ -151,11 +152,144 @@ try {
             out("  code     : /{$link->slug()} with 3 rules and {$total} scans");
             break;
 
+        case 'install':
+            if (Installer::isInstalled()) {
+                fail('Already installed. Delete ' . Installer::LOCK_FILE . ' first if you really mean to re-run setup.');
+            }
+
+            // Validate the arguments before touching anything. Creating a
+            // database and then printing a usage message would leave the
+            // caller worse off than when they started.
+            $email = $args[0] ?? null;
+            $password = $args[1] ?? null;
+            if ($email === null || $password === null) {
+                out('Usage: php bin/console install <admin-email> <admin-password> [site-url]');
+                out('');
+                out('Creates the database if needed, applies the schema, and creates the');
+                out('first administrator. Reads DB_* settings from .env or the environment.');
+                exit(1);
+            }
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                fail('That does not look like an email address: ' . $email);
+            }
+            $problem = User::passwordProblem($password);
+            if ($problem !== null) {
+                fail($problem);
+            }
+
+            out('QRoute setup');
+            out('');
+            foreach (Installer::requirements() as $check) {
+                $mark = $check['ok'] ? 'ok  ' : ($check['required'] ? 'FAIL' : 'warn');
+                out(sprintf('  [%s] %-34s %s', $mark, $check['name'], $check['detail']));
+            }
+            if (!Installer::requirementsMet(Installer::requirements())) {
+                fail("\nFix the items marked FAIL, then run setup again.");
+            }
+
+            $config = [
+                'DB_DRIVER' => Config::get('DB_DRIVER', 'mysql') ?? 'mysql',
+                'DB_HOST'   => Config::get('DB_HOST', '127.0.0.1') ?? '127.0.0.1',
+                'DB_PORT'   => Config::get('DB_PORT', '3306') ?? '3306',
+                'DB_NAME'   => Config::get('DB_NAME', 'qroute') ?? 'qroute',
+                'DB_USER'   => Config::get('DB_USER', 'root') ?? 'root',
+                'DB_PASS'   => Config::get('DB_PASS', '') ?? '',
+                'DB_PATH'   => Config::get('DB_PATH', 'storage/qroute.sqlite') ?? 'storage/qroute.sqlite',
+            ];
+
+            out('');
+            out('Database: ' . ($config['DB_DRIVER'] === 'sqlite'
+                ? $config['DB_PATH']
+                : "{$config['DB_USER']}@{$config['DB_HOST']}:{$config['DB_PORT']}/{$config['DB_NAME']}"));
+
+            $test = Installer::testDatabase($config, true);
+            if (!$test['ok']) {
+                fail('  ' . $test['error']);
+            }
+            out('  connected' . ($test['server'] !== '' ? ' to ' . $test['server'] : '')
+                . ($test['created'] ? ' (database created)' : ''));
+
+            $migration = Installer::migrate($config);
+            if (!$migration['ok']) {
+                fail('  schema failed: ' . $migration['error']);
+            }
+            out('  schema applied (' . count($migration['applied']) . ' migration(s))');
+
+            $appUrl = rtrim($args[2] ?? (Config::get('APP_URL', 'http://localhost') ?? 'http://localhost'), '/');
+
+            $appKey = Config::get('APP_KEY', '') ?: Security::generateKey();
+            $env = array_merge($config, [
+                'APP_KEY' => $appKey, 'APP_URL' => $appUrl, 'APP_DEBUG' => 'false',
+            ]);
+            if ($config['DB_DRIVER'] === 'mysql') {
+                unset($env['DB_PATH']);
+            }
+            $written = Installer::writeEnv($env);
+            out($written['ok'] ? '  .env written' : '  WARNING: could not write .env — ' . $written['error']);
+
+            $admin = Installer::createAdmin($email, $password);
+            if (!$admin['ok']) {
+                fail('  ' . $admin['error']);
+            }
+            Installer::finalise($email);
+
+            out('');
+            out('Done. Sign in at ' . $appUrl . '/login as ' . $email);
+            out('The installer is now locked (' . Installer::LOCK_FILE . ').');
+            break;
+
+        case 'admin:create':
+            $email = $args[0] ?? fail('Usage: admin:create <email> <password>');
+            $password = $args[1] ?? fail('Usage: admin:create <email> <password>');
+            $result = Installer::createAdmin($email, $password);
+            if (!$result['ok']) {
+                fail($result['error']);
+            }
+            out($email . ' is now an administrator.');
+            break;
+
+        case 'admin:promote':
+            $email = $args[0] ?? fail('Usage: admin:promote <email>');
+            $user = User::findByEmail($email) ?? fail('No user with that email.');
+            $user->setAdmin(true);
+            out($email . ' is now an administrator.');
+            break;
+
+        case 'admin:list':
+            $admins = Database::instance()->all(
+                'SELECT email, status, created_at FROM users WHERE is_admin = 1 ORDER BY created_at'
+            );
+            if ($admins === []) {
+                out('No administrators. Create one with: php bin/console admin:create <email> <password>');
+                break;
+            }
+            foreach ($admins as $row) {
+                out(sprintf('  %-40s %-10s since %s', $row['email'], $row['status'], gmdate('Y-m-d', (int) $row['created_at'])));
+            }
+            break;
+
+        case 'schema:dump':
+            $target = $args[0] ?? dirname(__DIR__) . '/database/schema.sql';
+            $dir = dirname($target);
+            if (!is_dir($dir)) {
+                mkdir($dir, 0775, true);
+            }
+            $sql = QRoute\Core\SchemaDumper::mysql(dirname(__DIR__) . '/migrations');
+            file_put_contents($target, $sql);
+            out('Wrote ' . $target . ' (' . number_format(strlen($sql)) . ' bytes).');
+            out('Import it in phpMyAdmin if you would rather not run migrations.');
+            break;
+
         case 'help':
         default:
             out('QRoute console');
             out('');
+            out('  install <email> <pass> [url]  Full setup: database, schema, first admin');
             out('  migrate                   Apply pending database migrations');
+            out('  schema:dump [file]        Write a plain .sql file for phpMyAdmin import');
+            out('  admin:create <email> <pw> Create an administrator account');
+            out('  admin:promote <email>     Make an existing user an administrator');
+            out('  admin:list                List administrators');
             out('  key:generate              Print a new APP_KEY');
             out('  rollup [retentionDays]    Aggregate scans into daily rows, prune raw');
             out('  gc                        Prune expired sessions and rate limit windows');

@@ -50,6 +50,9 @@ $nonce      = View::nonce();
         <a href="/app" class="<?= $activeNav === 'links' ? 'active' : '' ?>">My codes</a>
         <a href="/app/analytics" class="<?= $activeNav === 'analytics' ? 'active' : '' ?>">Analytics</a>
         <a href="/app/settings" class="<?= $activeNav === 'settings' ? 'active' : '' ?>">Settings</a>
+        <?php if ($currentUser->isAdmin()): ?>
+          <a href="/admin" class="<?= $activeNav === 'admin' ? 'active' : '' ?>">Admin</a>
+        <?php endif; ?>
         <button class="btn btn-ghost btn-sm" type="button" data-theme-toggle aria-label="Switch colour theme">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.36-6.36-.7.7M6.34 17.66l-.7.7m12.72 0-.7-.7M6.34 6.34l-.7-.7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>

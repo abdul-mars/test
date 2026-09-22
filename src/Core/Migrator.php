@@ -90,7 +90,19 @@ final class Migrator
 
     private function expand(string $sql): string
     {
-        $mysql = $this->db->driver() === 'mysql';
+        return self::expandFor($sql, $this->db->driver());
+    }
+
+    /**
+     * Expands the portability tokens for a named driver.
+     *
+     * Static and public so the schema dumper can produce MySQL DDL without
+     * a live MySQL connection, and without a second copy of the type map
+     * that could drift away from this one.
+     */
+    public static function expandFor(string $sql, string $driver): string
+    {
+        $mysql = $driver === 'mysql';
         $map = $mysql
             ? [
                 '{{PK}}'          => 'BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY',

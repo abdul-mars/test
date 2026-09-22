@@ -68,6 +68,40 @@ jobs:
           php bin/console rollup
           php bin/console rollup
           php bin/console stats
+          # The generated dump must reproduce the migrated schema exactly.
+          php bin/console schema:dump /tmp/schema.sql
+          mysql -h 127.0.0.1 -u root -e "CREATE DATABASE qroute_sql CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          mysql -h 127.0.0.1 -u root qroute_sql < /tmp/schema.sql
+          for t in users links rules scans scan_daily api_keys sessions settings rate_limits audit_log; do
+            a=$(mysql -h 127.0.0.1 -u root -sN qroute_sql -e "SHOW CREATE TABLE $t" | sed 's/AUTO_INCREMENT=[0-9]*//')
+            b=$(mysql -h 127.0.0.1 -u root -sN qroute_app -e "SHOW CREATE TABLE $t" | sed 's/AUTO_INCREMENT=[0-9]*//')
+            if [ "$a" != "$b" ]; then echo "FAIL: $t differs between schema.sql and migrations"; exit 1; fi
+          done
+          echo "schema.sql matches the migrations for all tables"
+          # An imported schema must leave nothing pending.
+          DB_NAME=qroute_sql php bin/console migrate | grep -q 'Nothing to migrate' \
+            || { echo "FAIL: imported schema still reports pending migrations"; exit 1; }
+
+      - name: CLI installer refuses to run twice
+        env:
+          DB_DRIVER: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          DB_NAME: qroute_twice
+          DB_USER: root
+          DB_PASS: ''
+        run: |
+          rm -f storage/installed.lock .env
+          php bin/console install admin@example.test a-long-enough-pass http://localhost
+          test -f storage/installed.lock || { echo "FAIL: no lock after install"; exit 1; }
+          if php bin/console install other@example.test another-long-pass http://localhost; then
+            echo "FAIL: installer ran a second time"; exit 1
+          fi
+          echo "ok: second run refused"
+          # An administrator must exist and be the one we named.
+          php bin/console admin:list | grep -q admin@example.test \
+            || { echo "FAIL: administrator was not created"; exit 1; }
+          echo "ok: administrator created"
 
   test:
     runs-on: ubuntu-latest
@@ -106,15 +140,44 @@ jobs:
           php bin/console migrate   # must be idempotent
           php bin/console stats
 
+      - name: Installer gates a fresh checkout
+        env:
+          DB_DRIVER: sqlite
+          DB_PATH: /tmp/gate.sqlite
+        run: |
+          rm -f .env storage/installed.lock storage/install.key
+          php -S 127.0.0.1:8877 -t public public/index.php &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do curl -s -o /dev/null http://127.0.0.1:8877/install && break || sleep 0.3; done
+          fail=0
+          # With no .env and no lock, everything must route to the installer.
+          for p in / /pricing /login /app; do
+            loc=$(curl -s -o /dev/null -w '%{redirect_url}' "http://127.0.0.1:8877$p")
+            case "$loc" in
+              *"/install") echo "ok   $p -> installer" ;;
+              *) echo "FAIL $p did not route to the installer (got '$loc')"; fail=1 ;;
+            esac
+          done
+          # The wizard itself must render, and its CSS must load.
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8877/install)" = "200" ] \
+            || { echo "FAIL installer did not render"; fail=1; }
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8877/assets/app.css)" = "200" ] \
+            || { echo "FAIL installer CSS blocked by the gate"; fail=1; }
+          kill "$SERVER_PID" 2>/dev/null || true
+          exit $fail
+
       - name: Smoke test the HTTP surface
         env:
           DB_DRIVER: sqlite
           DB_PATH: /tmp/smoke.sqlite
-          APP_KEY: base64:Y2lrZXljaWtleWNpa2V5Y2lrZXljaWtleWNpaz0=
           APP_URL: http://127.0.0.1:8899
         run: |
-          php bin/console migrate
-          php bin/console seed ci@example.test ci-password-1234
+          # The gate step above left the app uninstalled, so set it up the way
+          # a real operator would. This exercises the CLI installer too.
+          rm -f storage/installed.lock
+          php bin/console install ci@example.test ci-password-1234 http://127.0.0.1:8899
+          test -f storage/installed.lock || { echo "FAIL: installer did not lock"; exit 1; }
+          php bin/console seed
           php -S 127.0.0.1:8899 -t public public/index.php &
           for i in $(seq 1 30); do
             curl -sf http://127.0.0.1:8899/health && break || sleep 0.3
@@ -141,6 +204,7 @@ jobs:
           check /qr/demo-menu.svg 200
           check /qr/demo-menu.png 200
           check /no-such-code     404
+          check /admin            302   # signed out, so bounced to login
           # Regression: php -S routes everything through index.php, so the
           # front controller has to hand real files back to the server.
           check /assets/app.css   200

@@ -1,7 +1,14 @@
+# Local configuration and secrets
 .env
+
+# Per-install state — never belongs in version control, and committing the
+# lock file would leave a fresh clone unable to run setup.
+storage/installed.lock
+storage/install.key
 storage/*.sqlite
 storage/*.sqlite-wal
 storage/*.sqlite-shm
 storage/logs/
+
 vendor/
 .DS_Store

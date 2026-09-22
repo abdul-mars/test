@@ -3,11 +3,13 @@ declare(strict_types=1);
 
 namespace QRoute;
 
+use QRoute\Controllers\AdminController;
 use QRoute\Controllers\AnalyticsController;
 use QRoute\Controllers\ApiController;
 use QRoute\Controllers\AuthController;
 use QRoute\Controllers\HttpError;
 use QRoute\Controllers\HttpRedirect;
+use QRoute\Controllers\InstallController;
 use QRoute\Controllers\LinkController;
 use QRoute\Controllers\PageController;
 use QRoute\Controllers\QrController;
@@ -20,6 +22,7 @@ use QRoute\Core\View;
 use QRoute\Http\Request;
 use QRoute\Http\Response;
 use QRoute\Http\Router;
+use QRoute\Services\Installer;
 
 /**
  * Route table and request lifecycle.
@@ -45,6 +48,19 @@ final class App
         } catch (\Throwable $e) {
             // A broken session store must not take down the redirect path.
             error_log('[qroute] session start failed: ' . $e->getMessage());
+        }
+
+        // Nothing else can work before setup has run: there is no database
+        // and no APP_KEY. Send every request to the wizard rather than
+        // failing with a connection error nobody can act on.
+        if (!Installer::isInstalled() && !str_starts_with($this->request->path, '/install')) {
+            $allowed = ['/assets/app.css', '/assets/app.js', '/assets/theme-init.js', '/assets/icon.svg'];
+            if (!in_array($this->request->path, $allowed, true)) {
+                return $this->withSecurityHeaders(
+                    Response::redirect('/install')->noStore(),
+                    $nonce
+                );
+            }
         }
 
         $router = $this->routes($session);
@@ -77,6 +93,14 @@ final class App
         $stats    = fn() => new AnalyticsController($req, $session);
         $settings = fn() => new SettingsController($req, $session);
         $qr       = fn() => new QrController($req, $session);
+
+        // ------------------------------------------------------ install
+        $install = fn() => new InstallController($req, $session);
+        $r->get('/install',            fn() => $install()->show('requirements'));
+        $r->get('/install/database',   fn() => $install()->show('database'));
+        $r->post('/install/database',  fn() => $install()->database());
+        $r->get('/install/admin',      fn() => $install()->show('admin'));
+        $r->post('/install/admin',     fn() => $install()->admin());
 
         // ---------------------------------------------------- marketing
         $r->get('/',               fn() => $page()->landing());
@@ -120,6 +144,14 @@ final class App
         $r->post('/app/settings/keys',             fn() => $settings()->createKey());
         $r->post('/app/settings/keys/{id:\d+}/revoke', fn($rq, $a) => $settings()->revokeKey($a['id']));
         $r->any('/app/billing',                    fn() => $settings()->billing());
+
+        // -------------------------------------------------------- admin
+        $adminC = fn() => new AdminController($req, $session);
+        $r->get('/admin',                      fn() => $adminC()->dashboard());
+        $r->get('/admin/users',                fn() => $adminC()->users());
+        $r->post('/admin/users/{id:\d+}',      fn($rq, $a) => $adminC()->updateUser($a['id']));
+        $r->get('/admin/links',                fn() => $adminC()->links());
+        $r->post('/admin/links/{id:\d+}',      fn($rq, $a) => $adminC()->updateLink($a['id']));
 
         // ---------------------------------------------------- QR images
         $r->get('/qr/{slug:[A-Za-z0-9_-]{3,32}}.{format:svg|png}',

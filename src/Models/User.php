@@ -218,6 +218,73 @@ final class User
         return $this->plan() !== self::PLAN_FREE;
     }
 
+    public function isAdmin(): bool
+    {
+        return (int) ($this->row['is_admin'] ?? 0) === 1;
+    }
+
+    /**
+     * Grants or revokes administrator rights.
+     *
+     * Callers must check that the actor is allowed to do this; the model
+     * deliberately does not, so the authorisation lives in one obvious
+     * place in the controller rather than being split between the two.
+     */
+    public function setAdmin(bool $isAdmin): void
+    {
+        Database::instance()->update(
+            'users',
+            ['is_admin' => $isAdmin ? 1 : 0, 'updated_at' => time()],
+            ['id' => $this->id()]
+        );
+        $this->row['is_admin'] = $isAdmin ? 1 : 0;
+    }
+
+    public function setStatus(string $status): void
+    {
+        $status = in_array($status, ['active', 'suspended'], true) ? $status : 'active';
+        Database::instance()->update(
+            'users',
+            ['status' => $status, 'updated_at' => time()],
+            ['id' => $this->id()]
+        );
+        $this->row['status'] = $status;
+        if ($status !== 'active') {
+            // A suspended account should not keep a live session.
+            Database::instance()->run('DELETE FROM sessions WHERE user_id = :u', ['u' => $this->id()]);
+        }
+    }
+
+    public static function countAdmins(): int
+    {
+        return (int) Database::instance()->scalar(
+            "SELECT COUNT(*) FROM users WHERE is_admin = 1 AND status = 'active'"
+        );
+    }
+
+    /** @return list<self> */
+    public static function all(int $limit = 100, int $offset = 0, string $search = ''): array
+    {
+        $sql = 'SELECT * FROM users';
+        $params = [];
+        if (trim($search) !== '') {
+            $sql .= ' WHERE email LIKE :q OR display_name LIKE :q';
+            $params['q'] = '%' . str_replace(['%', '_'], ['\%', '\_'], trim($search)) . '%';
+        }
+        $sql .= ' ORDER BY created_at DESC LIMIT ' . max(1, min(500, $limit))
+             . ' OFFSET ' . max(0, $offset);
+
+        return array_map(
+            static fn(array $r) => new self($r),
+            Database::instance()->all($sql, $params)
+        );
+    }
+
+    public static function countAll(): int
+    {
+        return (int) Database::instance()->scalar('SELECT COUNT(*) FROM users');
+    }
+
     public function createdAt(): int
     {
         return (int) $this->row['created_at'];

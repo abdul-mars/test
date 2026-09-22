@@ -87,32 +87,62 @@ Windows, `/Applications/XAMPP/htdocs/qroute` on macOS:
 git clone <this repo> qroute && cd qroute
 ```
 
-**4. Configure it:**
-
-```bash
-cp .env.example .env
-php bin/console key:generate        # paste the result into APP_KEY in .env
-```
-
-The database settings in `.env.example` already match a stock XAMPP install:
-user `root`, empty password, `127.0.0.1:3306`. If you have set a MySQL root
-password, put it in `DB_PASS`.
-
-**5. Create the tables, and some demo data to look at:**
-
-```bash
-php bin/console migrate
-php bin/console seed                # optional: demo account + 30 days of scans
-```
-
-**6. Run it.** The simplest way, needing no Apache configuration:
+**4. Start the app:**
 
 ```bash
 php -S 127.0.0.1:8000 -t public public/index.php
 ```
 
-Open <http://127.0.0.1:8000>. The seeded login is `demo@qroute.test` /
-`demo-password-123`.
+**5. Open <http://127.0.0.1:8000> and follow the setup wizard.**
+
+Until setup has run, every page redirects to the installer, so there is no
+way to end up with a half-configured site. The wizard checks your PHP
+version and extensions, connects to MySQL (creating the database for you if
+it does not exist), creates the tables, and creates your administrator
+account. It writes `.env` for you, including a freshly generated `APP_KEY`.
+
+![Setup wizard](docs/screenshots/09-install-requirements.png)
+
+> **`php` is not a recognised command?** XAMPP ships PHP but does not always
+> put it on your PATH. Use the full path instead:
+> `C:\xampp\php\php.exe -S 127.0.0.1:8000 -t public public/index.php` on
+> Windows, or `/Applications/XAMPP/bin/php` on macOS.
+
+When setup finishes it **locks itself**. Anyone who reaches `/install`
+afterwards gets a closed page rather than a chance to repoint your site at
+their own database. Deleting `storage/installed.lock` is the only way to run
+it again, and you should only do that deliberately.
+
+### Prefer the command line?
+
+```bash
+php bin/console install you@example.com your-password http://localhost:8000
+```
+
+Same steps, same result. It reads the `DB_*` settings from `.env` or the
+environment, refuses to do anything until the arguments are valid, and locks
+itself at the end.
+
+### Prefer phpMyAdmin?
+
+If you would rather import a `.sql` file than run migrations, use the dump
+in `database/schema.sql`: create an empty database, select it, and use
+phpMyAdmin's **Import** tab. Then create your administrator with:
+
+```bash
+php bin/console admin:create you@example.com your-password
+```
+
+The dump is generated from the migrations (`php bin/console schema:dump`),
+so it cannot describe a different schema from the one the app expects.
+
+### Want some data to look at?
+
+```bash
+php bin/console seed                # demo account + 30 days of scans
+```
+
+Signs in as `demo@qroute.test` / `demo-password-123`.
 
 > **`php` is not a recognised command?** XAMPP ships PHP but does not always
 > put it on your PATH. Use the full path instead:
@@ -156,9 +186,9 @@ docker compose up --build
 public/index.php        Front controller — the only web entry point
 src/
   App.php               Route table and request lifecycle
-  Core/                 Config, Database, Session, Security, Csrf, RateLimiter, View, Migrator
+  Core/                 Config, Database, Session, Security, Csrf, RateLimiter, View, Migrator, SchemaDumper
   Http/                 Request, Response, Router
-  Models/               User, Link, Rule, ApiKey
+  Models/               User, Link, Rule, ApiKey, Setting
   Services/
     QrCode.php          ISO/IEC 18004 encoder, written from the spec
     QrRenderer.php      SVG and PNG output
@@ -168,9 +198,11 @@ src/
     Analytics.php       Scan recording, daily rollups, reporting
     UrlValidator.php    Destination safety
     Plan.php            Plans, quotas and feature gating
+    Installer.php       First-run setup: requirements, database, first admin
   Controllers/          One per surface; ApiController is separate and cookie-free
   views/                Plain PHP templates, escaped by default
 migrations/             Forward-only, portable across MySQL, MariaDB and SQLite
+database/schema.sql     Generated from migrations/, for phpMyAdmin import
 tests/run.php           Dependency-free test suite
 ```
 
@@ -261,6 +293,35 @@ without sticky sessions.
 `DB_DRIVER=sqlite` runs the same migrations with no database server at all,
 which is handy for a quick local look or a small single-box deployment. In
 WAL mode it comfortably handles a few hundred scans per second.
+
+## Administrator
+
+The first account created during setup is an administrator. Administrators
+see an extra **Admin** item in the navigation with:
+
+- **Users** — change anyone's plan (this is how you upgrade a customer after
+  they pay, while payments are not yet connected), suspend or restore an
+  account, and promote or remove other administrators.
+- **Codes** — every code in the system, busiest first, with a switch to
+  disable one that is pointing somewhere it should not be.
+- **Overview** — user, code and scan totals, and a breakdown of accounts by
+  plan.
+
+![Admin panel](docs/screenshots/13-admin-dashboard.png)
+
+Non-administrators get a **404** on every `/admin` URL, so the area's
+existence is not confirmed to someone probing for it. Two guards stop you
+locking yourself out: you cannot remove your own administrator rights, and
+you cannot remove the last administrator.
+
+From the command line:
+
+```bash
+php bin/console admin:list                          # who has access
+php bin/console admin:promote someone@example.com   # grant it
+php bin/console admin:create new@example.com pass   # create and grant
+php bin/console user:plan someone@example.com pro   # change a plan
+```
 
 ## Taking payments
 

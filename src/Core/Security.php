@@ -21,7 +21,12 @@ final class Security
         }
         $raw = (string) Config::get('APP_KEY', '');
         if ($raw === '') {
-            if (Config::bool('APP_DEBUG', false) || PHP_SAPI === 'cli') {
+            if (!\QRoute\Services\Installer::isInstalled()) {
+                // During setup there is no APP_KEY yet, but the wizard's own
+                // forms still need CSRF protection. A throwaway key is kept
+                // in storage/ and discarded once setup writes the real one.
+                $raw = \QRoute\Services\Installer::bootstrapKey();
+            } elseif (Config::bool('APP_DEBUG', false) || PHP_SAPI === 'cli') {
                 // Deterministic per-install development key so sessions and
                 // hashes survive a restart without forcing setup first.
                 $raw = 'dev:' . hash('sha256', __DIR__);
@@ -30,6 +35,12 @@ final class Security
             }
         }
         return self::$key = $raw;
+    }
+
+    /** Drops the cached key. Used after setup writes a new APP_KEY. */
+    public static function forgetKey(): void
+    {
+        self::$key = null;
     }
 
     public static function generateKey(): string
