@@ -6,7 +6,7 @@ $values = $values ?? [];
 $canCustomSlug = $canCustomSlug ?? false;
 ?>
 <div class="wrap wrap-mid" style="padding-block:1.6rem">
-  <p class="small"><a href="/app">&larr; Back to your codes</a></p>
+  <p class="small"><a href="<?= $basePath ?>/app">&larr; Back to your codes</a></p>
   <h1 style="font-size:1.5rem">New dynamic code</h1>
   <p class="muted">
     Pick where it should point today. You can change this whenever you like — the
@@ -22,7 +22,7 @@ $canCustomSlug = $canCustomSlug ?? false;
     </div>
   <?php endif; ?>
 
-  <form method="post" action="/app/links/new" class="card">
+  <form method="post" action="<?= $basePath ?>/app/links/new" class="card">
     <input type="hidden" name="_csrf" value="<?= $e($csrfToken) ?>">
 
     <div class="field">
@@ -55,7 +55,7 @@ $canCustomSlug = $canCustomSlug ?? false;
 
     <div class="row" style="margin-top:1.3rem">
       <button class="btn" type="submit">Create code</button>
-      <a class="btn btn-ghost" href="/app">Cancel</a>
+      <a class="btn btn-ghost" href="<?= $basePath ?>/app">Cancel</a>
     </div>
   </form>
 </div>

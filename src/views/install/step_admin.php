@@ -4,7 +4,7 @@ $e = [View::class, 'e'];
 $values = $values ?? [];
 $guessedUrl = $guessedUrl ?? 'http://localhost';
 ?>
-<form method="post" action="/install/admin" class="card">
+<form method="post" action="<?= $basePath ?>/install/admin" class="card">
   <input type="hidden" name="_csrf" value="<?= $e($csrfToken) ?>">
   <h2 style="font-size:1.05rem">Create your administrator account</h2>
   <p class="muted small">
@@ -49,6 +49,6 @@ $guessedUrl = $guessedUrl ?? 'http://localhost';
 
   <div class="row">
     <button class="btn" type="submit">Create account and finish</button>
-    <a class="btn btn-ghost" href="/install/database">Back</a>
+    <a class="btn btn-ghost" href="<?= $basePath ?>/install/database">Back</a>
   </div>
 </form>

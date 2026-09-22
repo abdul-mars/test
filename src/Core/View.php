@@ -40,6 +40,9 @@ final class View
         }
 
         $data = array_merge(self::$shared, $data);
+        // Views print this in front of every link. Guarantee it exists so a
+        // view rendered outside a request cycle cannot emit a warning.
+        $data['basePath'] ??= '';
         extract($data, EXTR_SKIP);
         $nonce = self::$nonce;
 

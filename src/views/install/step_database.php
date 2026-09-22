@@ -4,7 +4,7 @@ $e = [View::class, 'e'];
 $config = $config ?? [];
 $driver = $config['DB_DRIVER'] ?? 'mysql';
 ?>
-<form method="post" action="/install/database" class="card">
+<form method="post" action="<?= $basePath ?>/install/database" class="card">
   <input type="hidden" name="_csrf" value="<?= $e($csrfToken) ?>">
   <h2 style="font-size:1.05rem">Connect your database</h2>
   <p class="muted small">
@@ -66,6 +66,6 @@ $driver = $config['DB_DRIVER'] ?? 'mysql';
 
   <div class="row">
     <button class="btn" type="submit">Test connection and create tables</button>
-    <a class="btn btn-ghost" href="/install">Back</a>
+    <a class="btn btn-ghost" href="<?= $basePath ?>/install">Back</a>
   </div>
 </form>

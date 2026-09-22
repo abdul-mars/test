@@ -42,7 +42,7 @@ $currentPlan = $currentPlan ?? null;
           <?php if ($currentPlan === $key): ?>
             <button class="btn btn-secondary btn-block" disabled>Your current plan</button>
           <?php elseif ($key === 'free'): ?>
-            <a class="btn btn-secondary btn-block" href="/register">Start free</a>
+            <a class="btn btn-secondary btn-block" href="<?= $basePath ?>/register">Start free</a>
           <?php else: ?>
             <a class="btn btn-block <?= $key === 'pro' ? '' : 'btn-secondary' ?>"
                href="<?= $currentPlan === null ? '/register' : '/app/billing?plan=' . $e($key) ?>">

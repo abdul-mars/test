@@ -254,7 +254,7 @@ final class InstallController extends Controller
 
         return $response->withCookie('qr_install', $value, [
             'expires'  => time() + 1800,
-            'path'     => '/install',
+            'path'     => $this->request->url('/install'),
             'secure'   => $this->request->secure,
             'httponly' => true,
             'samesite' => 'Lax',
@@ -265,7 +265,7 @@ final class InstallController extends Controller
     {
         return $response->withCookie('qr_install', '', [
             'expires'  => time() - 3600,
-            'path'     => '/install',
+            'path'     => $this->request->url('/install'),
             'secure'   => $this->request->secure,
             'httponly' => true,
             'samesite' => 'Lax',

@@ -12,8 +12,8 @@ $current = $current === false ? 0 : $current;
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Set up QRoute — step <?= $current + 1 ?> of <?= count($steps) ?></title>
 <meta name="robots" content="noindex, nofollow">
-<link rel="stylesheet" href="/assets/app.css">
-<script src="/assets/theme-init.js" nonce="<?= $e(View::nonce()) ?>"></script>
+<link rel="stylesheet" href="<?= $basePath ?>/assets/app.css">
+<script src="<?= $basePath ?>/assets/theme-init.js" nonce="<?= $e(View::nonce()) ?>"></script>
 </head>
 <body>
 <div class="wrap wrap-mid" style="padding-block:2rem">

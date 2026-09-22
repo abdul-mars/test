@@ -1,6 +1,16 @@
 # Apache configuration for QRoute.
 # nginx users: see deploy/nginx.conf instead.
 
+# The project root denies everything, so public/ grants itself back. This
+# is what keeps the app reachable when the project sits inside htdocs.
+<IfModule mod_authz_core.c>
+  Require all granted
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Allow from all
+</IfModule>
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
 

@@ -19,7 +19,7 @@ $planInfo = Plan::for($user);
   <div class="stack" style="--gap:1.2rem">
     <section class="card">
       <h2 style="font-size:1.05rem">Account</h2>
-      <form method="post" action="/app/settings/profile">
+      <form method="post" action="<?= $basePath ?>/app/settings/profile">
         <input type="hidden" name="_csrf" value="<?= $e($csrfToken) ?>">
         <div class="field">
           <label for="display_name">Display name</label>
@@ -37,7 +37,7 @@ $planInfo = Plan::for($user);
 
     <section class="card">
       <h2 style="font-size:1.05rem">Change password</h2>
-      <form method="post" action="/app/settings/password">
+      <form method="post" action="<?= $basePath ?>/app/settings/password">
         <input type="hidden" name="_csrf" value="<?= $e($csrfToken) ?>">
         <div class="field">
           <label for="current_password">Current password</label>
@@ -62,7 +62,7 @@ $planInfo = Plan::for($user);
         <?= $e(View::number((int) $planInfo['scans_per_month'])) ?> scans/month &middot;
         <?= (int) $planInfo['history_days'] ?> days of history
       </p>
-      <a class="btn <?= $user->isPaid() ? 'btn-secondary' : '' ?>" href="/pricing">
+      <a class="btn <?= $user->isPaid() ? 'btn-secondary' : '' ?>" href="<?= $basePath ?>/pricing">
         <?= $user->isPaid() ? 'Change plan' : 'Upgrade' ?>
       </a>
     </section>
@@ -71,7 +71,7 @@ $planInfo = Plan::for($user);
       <h2 style="font-size:1.05rem">API keys</h2>
       <?php if (!Plan::can($user, 'api_access')): ?>
         <p class="muted small">The REST API is available on Pro and Team plans.</p>
-        <a class="btn btn-secondary btn-sm" href="/pricing">See plans</a>
+        <a class="btn btn-secondary btn-sm" href="<?= $basePath ?>/pricing">See plans</a>
       <?php else: ?>
         <?php if ($newKey !== null): ?>
           <div class="alert alert-success" role="status">
@@ -96,7 +96,7 @@ $planInfo = Plan::for($user);
                   <td class="mono small"><?= $e($key['prefix']) ?>&hellip;</td>
                   <td class="small muted"><?= $e(View::ago($key['last_used_at'] === null ? null : (int) $key['last_used_at'])) ?></td>
                   <td class="num">
-                    <form method="post" action="/app/settings/keys/<?= (int) $key['id'] ?>/revoke" style="margin:0"
+                    <form method="post" action="<?= $basePath ?>/app/settings/keys/<?= (int) $key['id'] ?>/revoke" style="margin:0"
                           data-confirm="Revoke this key? Anything using it stops working immediately.">
                       <input type="hidden" name="_csrf" value="<?= $e($csrfToken) ?>">
                       <button class="btn btn-ghost btn-sm" type="submit">Revoke</button>
@@ -109,12 +109,12 @@ $planInfo = Plan::for($user);
           </div>
         <?php endif; ?>
 
-        <form method="post" action="/app/settings/keys" class="row" style="margin-top:1rem">
+        <form method="post" action="<?= $basePath ?>/app/settings/keys" class="row" style="margin-top:1rem">
           <input type="hidden" name="_csrf" value="<?= $e($csrfToken) ?>">
           <input type="text" name="name" placeholder="Key name, e.g. Zapier" maxlength="80" class="grow">
           <button class="btn btn-secondary" type="submit">Create key</button>
         </form>
-        <p class="hint">See the <a href="/docs">API documentation</a> for what you can do with it.</p>
+        <p class="hint">See the <a href="<?= $basePath ?>/docs">API documentation</a> for what you can do with it.</p>
       <?php endif; ?>
     </section>
   </div>

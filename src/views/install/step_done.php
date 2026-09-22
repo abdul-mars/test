@@ -29,7 +29,7 @@ $e = [View::class, 'e'];
     <tr><td>Database</td><td><?= $e(strtoupper((string) ($config['DB_DRIVER'] ?? 'mysql'))) ?></td></tr>
   </table>
 
-  <a class="btn btn-lg" href="/login">Sign in to QRoute</a>
+  <a class="btn btn-lg" href="<?= $basePath ?>/login">Sign in to QRoute</a>
 
   <hr style="border:0;border-top:1px solid var(--border);margin:1.5rem 0">
 

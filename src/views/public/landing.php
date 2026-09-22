@@ -19,8 +19,8 @@ $e = [View::class, 'e'];
           scanning it.
         </p>
         <div class="row" style="margin-top:1.6rem">
-          <a class="btn btn-lg" href="/register">Create a free code</a>
-          <a class="btn btn-lg btn-secondary" href="/pricing">See pricing</a>
+          <a class="btn btn-lg" href="<?= $basePath ?>/register">Create a free code</a>
+          <a class="btn btn-lg btn-secondary" href="<?= $basePath ?>/pricing">See pricing</a>
         </div>
         <p class="faint" style="margin-top:.9rem">
           Free forever for 3 codes. No card needed.
@@ -122,6 +122,6 @@ $e = [View::class, 'e'];
     <p class="muted" style="max-width:48ch;margin:0 auto 1.5rem">
       Three codes free, forever. Upgrade when the printer gets involved.
     </p>
-    <a class="btn btn-lg" href="/register">Create a free code</a>
+    <a class="btn btn-lg" href="<?= $basePath ?>/register">Create a free code</a>
   </div>
 </section>

@@ -612,4 +612,80 @@ $t->ok(!str_contains($dump, 'IF NOT EXISTS idx_'), 'index creation avoids the Ma
 $t->ok(str_contains($dump, 'AUTO_INCREMENT'), 'dump expands the primary key for MySQL');
 $t->ok(!str_contains($dump, 'AUTOINCREMENT'), 'dump does not leak SQLite syntax');
 
+// =====================================================================
+$t->group('Serving from a sub-directory');
+
+// Dropping the project into htdocs and browsing to localhost/qroute/public
+// is the common XAMPP layout, so routes must match with the prefix removed
+// and generated URLs must put it back.
+$detect = new ReflectionMethod(Request::class, 'detectBasePath');
+$detect->setAccessible(true);
+$withScript = static function (string $script) use ($detect): string {
+    $previous = $_SERVER['SCRIPT_NAME'] ?? null;
+    $_SERVER['SCRIPT_NAME'] = $script;
+    $result = $detect->invoke(null);
+    if ($previous === null) {
+        unset($_SERVER['SCRIPT_NAME']);
+    } else {
+        $_SERVER['SCRIPT_NAME'] = $previous;
+    }
+    return $result;
+};
+
+$t->same('', $withScript('/index.php'), 'a document root of its own yields no prefix');
+$t->same('/qroute/public', $withScript('/qroute/public/index.php'), 'a sub-directory is detected');
+$t->same('/test/public', $withScript('/test/public/index.php'), 'nested sub-directory is detected');
+$t->same('', $withScript(''), 'a missing SCRIPT_NAME yields no prefix');
+
+// SCRIPT_NAME is server-supplied and ends up printed into every link, so
+// anything that is not a plain path must be discarded rather than trusted.
+$t->same('', $withScript('/<script>alert(1)</script>/index.php'), 'markup in SCRIPT_NAME is rejected');
+$t->same('', $withScript('/a/../../etc/index.php'), 'traversal in SCRIPT_NAME is rejected');
+$t->same('', $withScript('/a"onload="x/index.php'), 'quote injection in SCRIPT_NAME is rejected');
+
+// Routing happens on the path with the prefix stripped.
+$sub = Request::fake('GET', '/app/links/7', [], [], [], '/qroute/public');
+$t->same('/app/links/7', $sub->path, 'the route is matched without the prefix');
+$t->same('/qroute/public/app', $sub->url('/app'), 'generated URLs carry the prefix');
+$t->same('/qroute/public/assets/app.css', $sub->url('/assets/app.css'), 'asset URLs carry the prefix');
+$t->same('/qroute/public', $sub->url(''), 'an empty path becomes the prefix itself');
+$t->same('https://example.com/x', $sub->url('https://example.com/x'), 'absolute URLs are left alone');
+$t->same('//cdn.example.com/x', $sub->url('//cdn.example.com/x'), 'protocol-relative URLs are left alone');
+
+$root = Request::fake('GET', '/app', [], [], [], '');
+$t->same('/app', $root->url('/app'), 'without a prefix URLs are unchanged');
+$t->same('/', $root->url(''), 'an empty path at the root becomes /');
+
+// The short-link URL baked into a printed code must include the prefix, or
+// every code generated from a sub-directory install would 404 when scanned.
+$subLink = Link::create($user->id(), Link::generateSlug(), 'https://example.com/sub');
+$t->same(
+    'https://qrt.test/qroute/public/' . $subLink->slug(),
+    $subLink->shortUrl('https://qrt.test/qroute/public'),
+    'a short URL is built from the full base including any prefix'
+);
+$t->same(
+    'https://qrt.test/' . $subLink->slug(),
+    $subLink->shortUrl('https://qrt.test'),
+    'a short URL at the root has no prefix'
+);
+$t->same(
+    'https://qrt.test/' . $subLink->slug(),
+    $subLink->shortUrl('https://qrt.test/'),
+    'a trailing slash on the base does not double up'
+);
+
+// baseUrl() must include the prefix when APP_URL is not configured, since
+// that is what the QR encoder is handed.
+$previousAppUrl = \QRoute\Core\Config::get('APP_URL', '');
+\QRoute\Core\Config::set('APP_URL', '');
+putenv('APP_URL');
+unset($_ENV['APP_URL']);
+$t->same(
+    'https://localhost/qroute/public',
+    Request::fake('GET', '/', [], [], [], '/qroute/public')->baseUrl(),
+    'baseUrl falls back to host plus prefix'
+);
+\QRoute\Core\Config::set('APP_URL', (string) $previousAppUrl);
+
 exit($t->finish());

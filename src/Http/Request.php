@@ -26,6 +26,8 @@ final class Request
         public readonly string $rawBody,
         public readonly bool $secure,
         public readonly string $host,
+        /** Sub-directory the app is served from, e.g. "/qroute/public" or "". */
+        public readonly string $basePath = '',
     ) {
         $this->headers = $headers;
     }
@@ -38,6 +40,19 @@ final class Request
         $path = is_string($path) ? rawurldecode($path) : '/';
         if ($path === '' ) {
             $path = '/';
+        }
+
+        // Dropping the project into htdocs and browsing to
+        // localhost/qroute/public is the most natural thing to do on XAMPP,
+        // so the app has to work from a sub-directory as well as from a
+        // document root of its own. Routes are matched against the path
+        // with that prefix removed, and generated URLs put it back.
+        $basePath = self::detectBasePath();
+        if ($basePath !== '' && str_starts_with($path, $basePath)) {
+            $path = substr($path, strlen($basePath));
+            if ($path === '' || $path[0] !== '/') {
+                $path = '/' . $path;
+            }
         }
 
         $headers = [];
@@ -73,14 +88,50 @@ final class Request
             $headers,
             $body,
             $https,
-            (string) ($_SERVER['HTTP_HOST'] ?? 'localhost')
+            (string) ($_SERVER['HTTP_HOST'] ?? 'localhost'),
+            $basePath
         );
     }
 
-    /** Builds a request by hand. Used by the test suite. */
-    public static function fake(string $method, string $path, array $post = [], array $query = [], array $headers = []): self
+    /**
+     * Works out the sub-directory the front controller is served from.
+     *
+     * SCRIPT_NAME is "/qroute/public/index.php" when the project sits in a
+     * folder under the document root, and "/index.php" when the web server
+     * points at public/ directly. The directory part is the prefix every
+     * generated URL needs.
+     */
+    private static function detectBasePath(): string
     {
-        return new self(strtoupper($method), $path, $query, $post, $headers, '', true, 'localhost');
+        $script = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
+        if ($script === '') {
+            return '';
+        }
+        $dir = str_replace('\\', '/', dirname($script));
+        if ($dir === '/' || $dir === '.' || $dir === '\\') {
+            return '';
+        }
+        $dir = rtrim($dir, '/');
+
+        // SCRIPT_NAME comes from the server, and this value is printed into
+        // every link on every page. Accept only a plain path so it can never
+        // carry markup or traverse upwards.
+        if (preg_match('#^(/[A-Za-z0-9_.\-~]+)+$#', $dir) !== 1 || str_contains($dir, '..')) {
+            return '';
+        }
+        return $dir;
+    }
+
+    /** Builds a request by hand. Used by the test suite. */
+    public static function fake(
+        string $method,
+        string $path,
+        array $post = [],
+        array $query = [],
+        array $headers = [],
+        string $basePath = ''
+    ): self {
+        return new self(strtoupper($method), $path, $query, $post, $headers, '', true, 'localhost', $basePath);
     }
 
     public function header(string $name, string $default = ''): string
@@ -191,7 +242,25 @@ final class Request
         if ($configured !== null && $configured !== '') {
             return rtrim($configured, '/');
         }
-        return ($this->secure ? 'https://' : 'http://') . $this->host;
+        return ($this->secure ? 'https://' : 'http://') . $this->host . $this->basePath;
+    }
+
+    /**
+     * Turns an application path such as "/login" into one the browser can
+     * follow, adding the sub-directory prefix when there is one.
+     */
+    public function url(string $path): string
+    {
+        if ($path === '' ) {
+            return $this->basePath === '' ? '/' : $this->basePath;
+        }
+        if (preg_match('#^[a-z][a-z0-9+.\-]*:|^//#i', $path) === 1) {
+            return $path; // already absolute
+        }
+        if ($path[0] !== '/') {
+            $path = '/' . $path;
+        }
+        return $this->basePath . $path;
     }
 
     private static function proxyTrusted(): bool

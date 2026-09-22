@@ -87,13 +87,27 @@ Windows, `/Applications/XAMPP/htdocs/qroute` on macOS:
 git clone <this repo> qroute && cd qroute
 ```
 
-**4. Start the app:**
+You can now browse to **<http://localhost/qroute/public>** and the app works
+from that sub-folder — links, redirects and the QR codes it generates all
+carry the `/qroute/public` prefix automatically. Point Apache at `public/`
+instead if you would rather have a tidy URL; both layouts are supported and
+tested.
+
+> **Never browse to `http://localhost/qroute` itself.** That is the project
+> root, which holds `.env`. A `.htaccess` in the project root denies access
+> to everything except `public/`, so this is safe by default on Apache — but
+> it relies on `AllowOverride All`, which XAMPP sets by default and some
+> hosts do not. Pointing the web server at `public/` removes the reliance
+> entirely.
+
+**4. Open the app** — either <http://localhost/qroute/public> through
+XAMPP's Apache, or with PHP's own server if you prefer:
 
 ```bash
 php -S 127.0.0.1:8000 -t public public/index.php
 ```
 
-**5. Open <http://127.0.0.1:8000> and follow the setup wizard.**
+**5. Follow the setup wizard.**
 
 Until setup has run, every page redirects to the installer, so there is no
 way to end up with a half-configured site. The wizard checks your PHP

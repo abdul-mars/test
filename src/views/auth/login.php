@@ -12,7 +12,7 @@ $email = $email ?? '';
     <div class="alert alert-error" role="alert"><?= $e($error) ?></div>
   <?php endif; ?>
 
-  <form method="post" action="/login" class="card">
+  <form method="post" action="<?= $basePath ?>/login" class="card">
     <input type="hidden" name="_csrf" value="<?= $e($csrfToken) ?>">
     <div class="field">
       <label for="email">Email</label>
@@ -27,6 +27,6 @@ $email = $email ?? '';
   </form>
 
   <p class="center small muted" style="margin-top:1.1rem">
-    No account yet? <a href="/register">Create one free</a>
+    No account yet? <a href="<?= $basePath ?>/register">Create one free</a>
   </p>
 </div>

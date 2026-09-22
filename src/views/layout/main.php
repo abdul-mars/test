@@ -20,9 +20,9 @@ $nonce      = View::nonce();
 <meta property="og:title" content="<?= $e($title) ?>">
 <meta property="og:description" content="<?= $e($description) ?>">
 <meta property="og:type" content="website">
-<link rel="stylesheet" href="/assets/app.css">
-<link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
-<script src="/assets/theme-init.js" nonce="<?= $e($nonce) ?>"></script>
+<link rel="stylesheet" href="<?= $basePath ?>/assets/app.css">
+<link rel="icon" href="<?= $basePath ?>/assets/icon.svg" type="image/svg+xml">
+<script src="<?= $basePath ?>/assets/theme-init.js" nonce="<?= $e($nonce) ?>"></script>
 </head>
 <body class="<?= $e($bodyClass) ?>">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -47,11 +47,11 @@ $nonce      = View::nonce();
 
     <nav class="nav" id="site-nav">
       <?php if ($currentUser !== null): ?>
-        <a href="/app" class="<?= $activeNav === 'links' ? 'active' : '' ?>">My codes</a>
-        <a href="/app/analytics" class="<?= $activeNav === 'analytics' ? 'active' : '' ?>">Analytics</a>
-        <a href="/app/settings" class="<?= $activeNav === 'settings' ? 'active' : '' ?>">Settings</a>
+        <a href="<?= $basePath ?>/app" class="<?= $activeNav === 'links' ? 'active' : '' ?>">My codes</a>
+        <a href="<?= $basePath ?>/app/analytics" class="<?= $activeNav === 'analytics' ? 'active' : '' ?>">Analytics</a>
+        <a href="<?= $basePath ?>/app/settings" class="<?= $activeNav === 'settings' ? 'active' : '' ?>">Settings</a>
         <?php if ($currentUser->isAdmin()): ?>
-          <a href="/admin" class="<?= $activeNav === 'admin' ? 'active' : '' ?>">Admin</a>
+          <a href="<?= $basePath ?>/admin" class="<?= $activeNav === 'admin' ? 'active' : '' ?>">Admin</a>
         <?php endif; ?>
         <button class="btn btn-ghost btn-sm" type="button" data-theme-toggle aria-label="Switch colour theme">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -59,21 +59,21 @@ $nonce      = View::nonce();
             <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/>
           </svg>
         </button>
-        <form method="post" action="/logout" style="margin:0">
+        <form method="post" action="<?= $basePath ?>/logout" style="margin:0">
           <input type="hidden" name="_csrf" value="<?= $e($csrfToken ?? '') ?>">
           <button class="btn btn-secondary btn-sm" type="submit">Sign out</button>
         </form>
       <?php else: ?>
-        <a href="/pricing" class="<?= $activeNav === 'pricing' ? 'active' : '' ?>">Pricing</a>
-        <a href="/docs" class="<?= $activeNav === 'docs' ? 'active' : '' ?>">API</a>
+        <a href="<?= $basePath ?>/pricing" class="<?= $activeNav === 'pricing' ? 'active' : '' ?>">Pricing</a>
+        <a href="<?= $basePath ?>/docs" class="<?= $activeNav === 'docs' ? 'active' : '' ?>">API</a>
         <button class="btn btn-ghost btn-sm" type="button" data-theme-toggle aria-label="Switch colour theme">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.36-6.36-.7.7M6.34 17.66l-.7.7m12.72 0-.7-.7M6.34 6.34l-.7-.7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/>
           </svg>
         </button>
-        <a href="/login">Sign in</a>
-        <a href="/register" class="btn btn-sm">Start free</a>
+        <a href="<?= $basePath ?>/login">Sign in</a>
+        <a href="<?= $basePath ?>/register" class="btn btn-sm">Start free</a>
       <?php endif; ?>
     </nav>
   </div>
@@ -94,14 +94,14 @@ $nonce      = View::nonce();
   <div class="wrap">
     <div>&copy; <?= date('Y') ?> QRoute — dynamic QR codes that never need reprinting.</div>
     <div class="row">
-      <a href="/pricing">Pricing</a>
-      <a href="/docs">API</a>
-      <a href="/legal/privacy">Privacy</a>
-      <a href="/legal/terms">Terms</a>
+      <a href="<?= $basePath ?>/pricing">Pricing</a>
+      <a href="<?= $basePath ?>/docs">API</a>
+      <a href="<?= $basePath ?>/legal/privacy">Privacy</a>
+      <a href="<?= $basePath ?>/legal/terms">Terms</a>
     </div>
   </div>
 </footer>
 
-<script src="/assets/app.js" nonce="<?= $e($nonce) ?>" defer></script>
+<script src="<?= $basePath ?>/assets/app.js" nonce="<?= $e($nonce) ?>" defer></script>
 </body>
 </html>

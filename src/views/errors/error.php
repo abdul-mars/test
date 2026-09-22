@@ -9,5 +9,5 @@ $e = [View::class, 'e'];
   </div>
   <h1 style="font-size:1.35rem"><?= $e($message) ?></h1>
   <p class="muted"><?= $e($detail ?? 'Something went wrong handling that request.') ?></p>
-  <a class="btn" href="/">Back to safety</a>
+  <a class="btn" href="<?= $basePath ?>/">Back to safety</a>
 </div>

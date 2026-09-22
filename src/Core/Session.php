@@ -176,7 +176,10 @@ final class Session
         $this->cookieApplied = true;
         $options = [
             'expires'  => $this->clearCookie ? time() - 3600 : time() + self::LIFETIME,
-            'path'     => '/',
+            // Scoped to the sub-directory the app is served from, so two
+            // apps under the same host do not overwrite each other's
+            // session, and so the cookie is actually sent back to us.
+            'path'     => $this->request->basePath === '' ? '/' : $this->request->basePath . '/',
             'domain'   => '',
             'secure'   => $this->request->secure,
             'httponly' => true,

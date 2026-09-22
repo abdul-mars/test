@@ -4,13 +4,13 @@ $e = [View::class, 'e'];
 /** @var list<array<string,mixed>> $rows */
 ?>
 <div class="wrap" style="padding-block:1.6rem">
-  <p class="small"><a href="/admin">&larr; Admin</a></p>
+  <p class="small"><a href="<?= $basePath ?>/admin">&larr; Admin</a></p>
   <div class="row-between" style="margin-bottom:1.1rem">
     <div>
       <h1 style="font-size:1.5rem;margin:0">Codes</h1>
       <p class="muted small" style="margin:0">Busiest first. Disable anything pointing somewhere it should not.</p>
     </div>
-    <form method="get" action="/admin/links" class="row" style="gap:.4rem">
+    <form method="get" action="<?= $basePath ?>/admin/links" class="row" style="gap:.4rem">
       <input type="search" name="q" value="<?= $e($search) ?>" placeholder="Search slug, URL or owner">
       <button class="btn btn-secondary btn-sm" type="submit">Search</button>
     </form>
@@ -35,7 +35,7 @@ $e = [View::class, 'e'];
             <td class="truncate small faint" style="max-width:170px"><?= $e($row['owner_email']) ?></td>
             <td class="num"><?= $e(View::number((int) $row['scan_count'])) ?></td>
             <td>
-              <form method="post" action="/admin/links/<?= (int) $row['id'] ?>" style="margin:0"
+              <form method="post" action="<?= $basePath ?>/admin/links/<?= (int) $row['id'] ?>" style="margin:0"
                     data-confirm="<?= (int) $row['is_active'] === 1 ? 'Disable this code? Anyone scanning it will see a paused message.' : '' ?>">
                 <input type="hidden" name="_csrf" value="<?= $e($csrfToken) ?>">
                 <input type="hidden" name="action" value="<?= (int) $row['is_active'] === 1 ? 'disable' : 'enable' ?>">

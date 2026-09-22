@@ -1,0 +1,27 @@
+# Protection for when the project sits inside a web-served folder.
+#
+# The supported layout points the web server at public/ only, and nothing
+# above it is reachable. But dropping a project into XAMPP's htdocs and
+# browsing to localhost/qroute is the most natural thing in the world, and
+# that layout would otherwise serve .env — your APP_KEY and database
+# password — to anyone who asks for it.
+#
+# This file makes that mistake harmless. It is a safety net, not a
+# substitute for pointing the document root at public/.
+
+# --- Apache 2.4 -------------------------------------------------------
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+
+# --- Apache 2.2 -------------------------------------------------------
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>
+
+# public/ has its own .htaccess and re-permits itself, so the application
+# keeps working while everything beside it stays private.
+
+# Never list directory contents, whatever else is configured.
+Options -Indexes

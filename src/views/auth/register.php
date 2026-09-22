@@ -12,7 +12,7 @@ $email = $email ?? '';
     <div class="alert alert-error" role="alert"><?= $e($error) ?></div>
   <?php endif; ?>
 
-  <form method="post" action="/register" class="card">
+  <form method="post" action="<?= $basePath ?>/register" class="card">
     <input type="hidden" name="_csrf" value="<?= $e($csrfToken) ?>">
     <div class="field">
       <label for="email">Email</label>
@@ -27,12 +27,12 @@ $email = $email ?? '';
     </div>
     <button class="btn btn-block" type="submit">Create account</button>
     <p class="hint center" style="margin-top:.8rem">
-      By continuing you agree to our <a href="/legal/terms">terms</a> and
-      <a href="/legal/privacy">privacy policy</a>.
+      By continuing you agree to our <a href="<?= $basePath ?>/legal/terms">terms</a> and
+      <a href="<?= $basePath ?>/legal/privacy">privacy policy</a>.
     </p>
   </form>
 
   <p class="center small muted" style="margin-top:1.1rem">
-    Already have an account? <a href="/login">Sign in</a>
+    Already have an account? <a href="<?= $basePath ?>/login">Sign in</a>
   </p>
 </div>

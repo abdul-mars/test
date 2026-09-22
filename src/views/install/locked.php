@@ -9,7 +9,7 @@ $e = [View::class, 'e'];
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Setup is closed</title>
 <meta name="robots" content="noindex">
-<link rel="stylesheet" href="/assets/app.css">
+<link rel="stylesheet" href="<?= $basePath ?>/assets/app.css">
 </head>
 <body>
 <div class="interstitial">
@@ -23,7 +23,7 @@ $e = [View::class, 'e'];
       If you really need to run setup again, delete
       <code><?= $e($lockFile) ?></code> from the project folder first.
     </p>
-    <a class="btn" href="/login">Go to sign in</a>
+    <a class="btn" href="<?= $basePath ?>/login">Go to sign in</a>
   </div>
 </div>
 </body>

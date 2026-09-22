@@ -9,7 +9,7 @@ $errors = $errors ?? [];
 $plan = $plan ?? [];
 ?>
 <div class="wrap" style="padding-block:1.6rem">
-  <p class="small"><a href="/app">&larr; Back to your codes</a></p>
+  <p class="small"><a href="<?= $basePath ?>/app">&larr; Back to your codes</a></p>
 
   <div class="row-between" style="margin-bottom:1.3rem">
     <div class="grow">
@@ -21,7 +21,7 @@ $plan = $plan ?? [];
       </div>
     </div>
     <div class="row">
-      <a class="btn btn-secondary btn-sm" href="/app/links/<?= (int) $link->id() ?>/analytics">Analytics</a>
+      <a class="btn btn-secondary btn-sm" href="<?= $basePath ?>/app/links/<?= (int) $link->id() ?>/analytics">Analytics</a>
     </div>
   </div>
 
@@ -39,7 +39,7 @@ $plan = $plan ?? [];
         <h2 style="font-size:1.05rem">Default destination</h2>
         <p class="muted small">Used when no rule below matches. This is the one that
            must always be right — it is the fallback for every scan.</p>
-        <form method="post" action="/app/links/<?= (int) $link->id() ?>/destination">
+        <form method="post" action="<?= $basePath ?>/app/links/<?= (int) $link->id() ?>/destination">
           <input type="hidden" name="_csrf" value="<?= $e($csrfToken) ?>">
           <div class="field">
             <label class="visually-hidden" for="default_url">Destination URL</label>
@@ -74,13 +74,13 @@ $plan = $plan ?? [];
                 </div>
                 <div class="row">
                   <span class="badge"><?= $e(View::number($rule->hits())) ?> <?= $rule->hits() === 1 ? 'hit' : 'hits' ?></span>
-                  <form method="post" action="/app/rules/<?= (int) $rule->id() ?>/toggle" style="margin:0">
+                  <form method="post" action="<?= $basePath ?>/app/rules/<?= (int) $rule->id() ?>/toggle" style="margin:0">
                     <input type="hidden" name="_csrf" value="<?= $e($csrfToken) ?>">
                     <button class="btn btn-ghost btn-sm" type="submit">
                       <?= $rule->isActive() ? 'Pause' : 'Resume' ?>
                     </button>
                   </form>
-                  <form method="post" action="/app/rules/<?= (int) $rule->id() ?>/delete" style="margin:0"
+                  <form method="post" action="<?= $basePath ?>/app/rules/<?= (int) $rule->id() ?>/delete" style="margin:0"
                         data-confirm="Delete this rule? Scans it was catching will fall through to the next match.">
                     <input type="hidden" name="_csrf" value="<?= $e($csrfToken) ?>">
                     <button class="btn btn-ghost btn-sm" type="submit" aria-label="Delete rule">&times;</button>
@@ -95,7 +95,7 @@ $plan = $plan ?? [];
         <?php if (count($rules) < (int) ($plan['max_rules'] ?? 0)): ?>
           <details class="disclosure" style="margin-top:1rem">
             <summary>Add a rule</summary>
-            <form method="post" action="/app/links/<?= (int) $link->id() ?>/rules" id="rule-conditions">
+            <form method="post" action="<?= $basePath ?>/app/links/<?= (int) $link->id() ?>/rules" id="rule-conditions">
               <input type="hidden" name="_csrf" value="<?= $e($csrfToken) ?>">
 
               <div class="field">
@@ -178,7 +178,7 @@ $plan = $plan ?? [];
         <?php else: ?>
           <p class="small muted" style="margin-top:1rem">
             You have used all <?= (int) ($plan['max_rules'] ?? 0) ?> rules on this plan.
-            <a href="/pricing">Upgrade for more</a>.
+            <a href="<?= $basePath ?>/pricing">Upgrade for more</a>.
           </p>
         <?php endif; ?>
       </section>
@@ -186,7 +186,7 @@ $plan = $plan ?? [];
       <!-- --------------------------------------------------- settings -->
       <section class="card">
         <h2 style="font-size:1.05rem">Code settings</h2>
-        <form method="post" action="/app/links/<?= (int) $link->id() ?>/settings">
+        <form method="post" action="<?= $basePath ?>/app/links/<?= (int) $link->id() ?>/settings">
           <input type="hidden" name="_csrf" value="<?= $e($csrfToken) ?>">
           <div class="field">
             <label for="ltitle">Name</label>
@@ -202,7 +202,7 @@ $plan = $plan ?? [];
         </form>
 
         <hr style="border:0;border-top:1px solid var(--border);margin:1.3rem 0">
-        <form method="post" action="/app/links/<?= (int) $link->id() ?>/delete"
+        <form method="post" action="<?= $basePath ?>/app/links/<?= (int) $link->id() ?>/delete"
               data-confirm="Delete this code permanently? Anything already printed with it will stop working. This cannot be undone.">
           <input type="hidden" name="_csrf" value="<?= $e($csrfToken) ?>">
           <button class="btn btn-danger btn-sm" type="submit">Delete this code</button>
@@ -216,14 +216,14 @@ $plan = $plan ?? [];
       <div class="card">
         <h2 style="font-size:1.05rem">Your code</h2>
         <div class="qr-stage">
-          <div class="qr-frame" data-qr-stage data-qr-src="/qr/<?= $e($link->slug()) ?>.svg">
+          <div class="qr-frame" data-qr-stage data-qr-src="<?= $basePath ?>/qr/<?= $e($link->slug()) ?>.svg">
             <?= $qrSvg ?>
           </div>
         </div>
 
         <div class="row" style="margin-top:.9rem">
-          <a class="btn btn-sm" href="/qr/<?= $e($link->slug()) ?>.svg?download=1">SVG</a>
-          <a class="btn btn-secondary btn-sm" href="/qr/<?= $e($link->slug()) ?>.png?download=1&amp;scale=20">PNG</a>
+          <a class="btn btn-sm" href="<?= $basePath ?>/qr/<?= $e($link->slug()) ?>.svg?download=1">SVG</a>
+          <a class="btn btn-secondary btn-sm" href="<?= $basePath ?>/qr/<?= $e($link->slug()) ?>.png?download=1&amp;scale=20">PNG</a>
         </div>
         <p class="hint">Use SVG for anything going to print — it stays sharp at any size.</p>
       </div>
@@ -231,7 +231,7 @@ $plan = $plan ?? [];
       <div class="card">
         <h3 style="font-size:.95rem">Appearance</h3>
         <?php if (($plan['custom_colors'] ?? false)): ?>
-          <form method="post" action="/app/links/<?= (int) $link->id() ?>/style">
+          <form method="post" action="<?= $basePath ?>/app/links/<?= (int) $link->id() ?>/style">
             <input type="hidden" name="_csrf" value="<?= $e($csrfToken) ?>">
             <div class="row" style="margin-bottom:.8rem">
               <label class="small" for="dark">Code</label>
@@ -252,7 +252,7 @@ $plan = $plan ?? [];
           </form>
         <?php else: ?>
           <p class="small muted">Brand colours and shapes are a Pro feature.</p>
-          <a class="btn btn-secondary btn-sm" href="/pricing">See Pro</a>
+          <a class="btn btn-secondary btn-sm" href="<?= $basePath ?>/pricing">See Pro</a>
         <?php endif; ?>
       </div>
 

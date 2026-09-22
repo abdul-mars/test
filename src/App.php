@@ -42,6 +42,11 @@ final class App
         $nonce = Security::nonce();
         View::setNonce($nonce);
 
+        // Every view prints this in front of its links, so the app works
+        // whether it is served from a document root of its own or from a
+        // folder such as htdocs/qroute/public.
+        View::share('basePath', $this->request->basePath);
+
         $session = new Session($this->request);
         try {
             $session->start();
@@ -57,7 +62,7 @@ final class App
             $allowed = ['/assets/app.css', '/assets/app.js', '/assets/theme-init.js', '/assets/icon.svg'];
             if (!in_array($this->request->path, $allowed, true)) {
                 return $this->withSecurityHeaders(
-                    Response::redirect('/install')->noStore(),
+                    Response::redirect($this->request->url('/install'))->noStore(),
                     $nonce
                 );
             }
@@ -78,6 +83,14 @@ final class App
         }
 
         $response = $session->applyTo($response);
+
+        // Controllers redirect to application paths such as "/app". Adding
+        // the sub-directory prefix in one place means none of them has to
+        // know whether there is one.
+        $location = $response->headers['Location'] ?? null;
+        if (is_string($location) && str_starts_with($location, '/') && !str_starts_with($location, '//')) {
+            $response->headers['Location'] = $this->request->url($location);
+        }
 
         return $this->withSecurityHeaders($response, $nonce);
     }

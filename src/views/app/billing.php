@@ -5,7 +5,7 @@ $e = [View::class, 'e'];
 /** @var \QRoute\Models\User $user */
 ?>
 <div class="wrap wrap-mid" style="padding-block:1.6rem">
-  <p class="small"><a href="/app/settings">&larr; Back to settings</a></p>
+  <p class="small"><a href="<?= $basePath ?>/app/settings">&larr; Back to settings</a></p>
   <h1 style="font-size:1.5rem">Billing</h1>
 
   <div class="card">
@@ -19,6 +19,6 @@ $e = [View::class, 'e'];
       quotas, feature gating and the interstitial — already reads from the plan,
       so switching a user's plan is the only thing payment needs to do.
     </p>
-    <a class="btn btn-secondary" href="/pricing">View plans</a>
+    <a class="btn btn-secondary" href="<?= $basePath ?>/pricing">View plans</a>
   </div>
 </div>

@@ -10,8 +10,8 @@ $cta = $cta ?? null;
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= $e($title) ?></title>
 <meta name="robots" content="noindex">
-<link rel="stylesheet" href="/assets/app.css">
-<script src="/assets/theme-init.js" nonce="<?= $e(View::nonce()) ?>"></script>
+<link rel="stylesheet" href="<?= $basePath ?>/assets/app.css">
+<script src="<?= $basePath ?>/assets/theme-init.js" nonce="<?= $e(View::nonce()) ?>"></script>
 </head>
 <body>
 <div class="interstitial">

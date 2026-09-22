@@ -11,8 +11,8 @@ $e = [View::class, 'e'];
       <p class="muted small" style="margin:0">System-wide view. Only administrators can see this.</p>
     </div>
     <div class="row">
-      <a class="btn btn-secondary btn-sm" href="/admin/users">Users</a>
-      <a class="btn btn-secondary btn-sm" href="/admin/links">Codes</a>
+      <a class="btn btn-secondary btn-sm" href="<?= $basePath ?>/admin/users">Users</a>
+      <a class="btn btn-secondary btn-sm" href="<?= $basePath ?>/admin/links">Codes</a>
     </div>
   </div>
 
@@ -87,7 +87,7 @@ $e = [View::class, 'e'];
             </tbody>
           </table>
         </div>
-        <p style="margin:.8rem 0 0"><a class="small" href="/admin/users">See all users &rarr;</a></p>
+        <p style="margin:.8rem 0 0"><a class="small" href="<?= $basePath ?>/admin/users">See all users &rarr;</a></p>
       <?php endif; ?>
     </section>
   </div>

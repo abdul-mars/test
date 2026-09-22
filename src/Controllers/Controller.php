@@ -63,11 +63,21 @@ abstract class Controller
         }
     }
 
+    /**
+     * Cookie path for this install. A cookie set at "/" would be sent to
+     * every other app on the same host, and one set at a path the app is
+     * not actually served from would never come back at all.
+     */
+    protected function cookiePath(): string
+    {
+        return $this->request->basePath === '' ? '/' : $this->request->basePath . '/';
+    }
+
     protected function flash(string $message, string $type = 'info'): void
     {
         setcookie('qr_flash', json_encode(['message' => $message, 'type' => $type]) ?: '', [
             'expires'  => time() + 60,
-            'path'     => '/',
+            'path'     => $this->cookiePath(),
             'secure'   => $this->request->secure,
             'httponly' => true,
             'samesite' => 'Lax',
@@ -83,7 +93,7 @@ abstract class Controller
         }
         $data = json_decode($raw, true, 4, JSON_INVALID_UTF8_SUBSTITUTE);
         setcookie('qr_flash', '', [
-            'expires' => time() - 3600, 'path' => '/',
+            'expires' => time() - 3600, 'path' => $this->cookiePath(),
             'secure' => $this->request->secure, 'httponly' => true, 'samesite' => 'Lax',
         ]);
         if (!is_array($data) || !isset($data['message'])) {

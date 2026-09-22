@@ -1,0 +1,11 @@
+# The database, the install lock and the bootstrap key live here.
+# Denied outright, belt and braces, in case the root rule is bypassed by a
+# host that ignores .htaccess in a parent directory.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>
+Options -Indexes

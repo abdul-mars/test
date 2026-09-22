@@ -31,9 +31,9 @@ $e = [View::class, 'e'];
 
   <div class="row" style="margin-top:1.3rem">
     <?php if ($ready): ?>
-      <a class="btn" href="/install/database">Continue</a>
+      <a class="btn" href="<?= $basePath ?>/install/database">Continue</a>
     <?php else: ?>
-      <a class="btn btn-secondary" href="/install">Check again</a>
+      <a class="btn btn-secondary" href="<?= $basePath ?>/install">Check again</a>
       <span class="faint">Fix the required items above, then re-check.</span>
     <?php endif; ?>
   </div>

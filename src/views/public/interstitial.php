@@ -10,8 +10,8 @@ $e = [View::class, 'e'];
 <title>Taking you there&hellip;</title>
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<link rel="stylesheet" href="/assets/app.css">
-<script src="/assets/theme-init.js" nonce="<?= $e($nonce) ?>"></script>
+<link rel="stylesheet" href="<?= $basePath ?>/assets/app.css">
+<script src="<?= $basePath ?>/assets/theme-init.js" nonce="<?= $e($nonce) ?>"></script>
 </head>
 <body>
 <div class="interstitial">
@@ -39,8 +39,8 @@ $e = [View::class, 'e'];
 
     <p class="faint" style="margin:1rem 0 0">
       This short pause is shown on free QRoute codes.
-      <a href="/pricing">Remove it</a> — or
-      <a href="/register">make your own code</a>.
+      <a href="<?= $basePath ?>/pricing">Remove it</a> — or
+      <a href="<?= $basePath ?>/register">make your own code</a>.
     </p>
   </div>
 </div>

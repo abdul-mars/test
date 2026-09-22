@@ -9,8 +9,8 @@ $e = [View::class, 'e'];
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Password required</title>
 <meta name="robots" content="noindex">
-<link rel="stylesheet" href="/assets/app.css">
-<script src="/assets/theme-init.js" nonce="<?= $e(View::nonce()) ?>"></script>
+<link rel="stylesheet" href="<?= $basePath ?>/assets/app.css">
+<script src="<?= $basePath ?>/assets/theme-init.js" nonce="<?= $e(View::nonce()) ?>"></script>
 </head>
 <body>
 <div class="interstitial">
@@ -22,7 +22,7 @@ $e = [View::class, 'e'];
       <div class="alert alert-error" role="alert">That password is not right.</div>
     <?php endif; ?>
 
-    <form method="post" action="/<?= $e($slug) ?>">
+    <form method="post" action="<?= $basePath ?>/<?= $e($slug) ?>">
       <div class="field">
         <label for="p">Password</label>
         <input type="password" id="p" name="p" autocomplete="off" autofocus required>

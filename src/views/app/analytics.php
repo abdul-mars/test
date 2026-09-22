@@ -13,7 +13,7 @@ $labels = array_keys($series);
 ?>
 <div class="wrap" style="padding-block:1.6rem">
   <?php if ($link !== null): ?>
-    <p class="small"><a href="/app/links/<?= (int) $link->id() ?>">&larr; Back to <?= $e($link->title()) ?></a></p>
+    <p class="small"><a href="<?= $basePath ?>/app/links/<?= (int) $link->id() ?>">&larr; Back to <?= $e($link->title()) ?></a></p>
     <h1 style="font-size:1.5rem"><?= $e($link->title()) ?> &mdash; analytics</h1>
   <?php else: ?>
     <h1 style="font-size:1.5rem">Analytics</h1>
@@ -29,7 +29,7 @@ $labels = array_keys($series);
          href="<?= $e($base) ?>?days=<?= (int) $d ?>"><?= $e($label) ?></a>
     <?php endforeach; ?>
     <?php if ($canExport && $link !== null): ?>
-      <a class="btn btn-ghost btn-sm" href="/app/links/<?= (int) $link->id() ?>/export.csv?days=<?= (int) $days ?>">
+      <a class="btn btn-ghost btn-sm" href="<?= $basePath ?>/app/links/<?= (int) $link->id() ?>/export.csv?days=<?= (int) $days ?>">
         Export CSV
       </a>
     <?php endif; ?>
@@ -117,7 +117,7 @@ $labels = array_keys($series);
   <?php if (!$canExport): ?>
     <div class="card" style="margin-top:1.4rem">
       <p class="small muted" style="margin:0">
-        Longer history and CSV export are available on Pro. <a href="/pricing">See plans</a>.
+        Longer history and CSV export are available on Pro. <a href="<?= $basePath ?>/pricing">See plans</a>.
       </p>
     </div>
   <?php endif; ?>

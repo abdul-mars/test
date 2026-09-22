@@ -15,14 +15,14 @@ $e = [View::class, 'e'];
       </p>
     </div>
     <?php if ($usage['links_used'] < $usage['links_max']): ?>
-      <a class="btn" href="/app/links/new">
+      <a class="btn" href="<?= $basePath ?>/app/links/new">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
         New code
       </a>
     <?php else: ?>
-      <a class="btn btn-secondary" href="/pricing">Upgrade for more codes</a>
+      <a class="btn btn-secondary" href="<?= $basePath ?>/pricing">Upgrade for more codes</a>
     <?php endif; ?>
   </div>
 
@@ -52,9 +52,9 @@ $e = [View::class, 'e'];
       <div class="stat-value" style="font-size:1.4rem"><?= $e(Plan::displayName($usage['plan'])) ?></div>
       <div class="stat-sub">
         <?php if ($usage['plan'] === 'free'): ?>
-          <a href="/pricing">Remove the interstitial &rarr;</a>
+          <a href="<?= $basePath ?>/pricing">Remove the interstitial &rarr;</a>
         <?php else: ?>
-          <a href="/app/billing">Manage billing</a>
+          <a href="<?= $basePath ?>/app/billing">Manage billing</a>
         <?php endif; ?>
       </div>
     </div>
@@ -65,20 +65,20 @@ $e = [View::class, 'e'];
       <h3>No codes yet</h3>
       <p>Create your first dynamic QR code. You can change where it points at any time,
          even after it is printed.</p>
-      <a class="btn" href="/app/links/new">Create your first code</a>
+      <a class="btn" href="<?= $basePath ?>/app/links/new">Create your first code</a>
     </div>
   <?php else: ?>
     <div class="stack" style="--gap:.75rem">
       <?php foreach ($links as $link): ?>
         <?php $short = $link->shortUrl($baseUrl); ?>
         <article class="link-card">
-          <a class="qr-thumb" href="/app/links/<?= (int) $link->id() ?>" aria-label="Open <?= $e($link->title()) ?>">
-            <img src="/qr/<?= $e($link->slug()) ?>.svg?s=thumb" alt="" loading="lazy" width="76" height="76">
+          <a class="qr-thumb" href="<?= $basePath ?>/app/links/<?= (int) $link->id() ?>" aria-label="Open <?= $e($link->title()) ?>">
+            <img src="<?= $basePath ?>/qr/<?= $e($link->slug()) ?>.svg?s=thumb" alt="" loading="lazy" width="76" height="76">
           </a>
 
           <div class="grow">
             <h3 class="truncate">
-              <a href="/app/links/<?= (int) $link->id() ?>" style="color:inherit"><?= $e($link->title()) ?></a>
+              <a href="<?= $basePath ?>/app/links/<?= (int) $link->id() ?>" style="color:inherit"><?= $e($link->title()) ?></a>
               <?php if (!$link->isActive()): ?>
                 <span class="badge badge-warning">Paused</span>
               <?php elseif ($link->hasExpired()): ?>
@@ -101,7 +101,7 @@ $e = [View::class, 'e'];
               </svg>
               <span class="visually-hidden">Copy link</span>
             </button>
-            <a class="btn btn-secondary btn-sm" href="/app/links/<?= (int) $link->id() ?>">Edit</a>
+            <a class="btn btn-secondary btn-sm" href="<?= $basePath ?>/app/links/<?= (int) $link->id() ?>">Edit</a>
           </div>
         </article>
       <?php endforeach; ?>
