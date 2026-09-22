@@ -24,6 +24,7 @@ use QRoute\Services\UrlValidator;
 
 $t = new TestRunner();
 test_database();
+fwrite(STDOUT, "Running against: " . test_driver() . "\n");
 
 // =====================================================================
 $t->group('QR encoder — known-good vectors');

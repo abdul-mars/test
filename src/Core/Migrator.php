@@ -59,6 +59,13 @@ final class Migrator
                 try {
                     $this->db->pdo()->exec($sql);
                 } catch (\PDOException $e) {
+                    // MySQL has no "CREATE INDEX IF NOT EXISTS", so a
+                    // re-created index arrives as a duplicate-key-name
+                    // error instead. That is the same outcome the SQLite
+                    // form asks for, so treat it as success.
+                    if ($this->isDuplicateIndex($e)) {
+                        continue;
+                    }
                     throw new \RuntimeException(
                         "Migration {$name} failed on: " . substr($sql, 0, 160) . ' -- ' . $e->getMessage(),
                         0,
@@ -73,6 +80,12 @@ final class Migrator
             }
         }
         return $ran;
+    }
+
+    /** MySQL error 1061 is ER_DUP_KEYNAME: the index already exists. */
+    private function isDuplicateIndex(\PDOException $e): bool
+    {
+        return ($e->errorInfo[1] ?? null) === 1061;
     }
 
     private function expand(string $sql): string
@@ -103,6 +116,18 @@ final class Migrator
         // SQLite does not accept a length suffix on TEXT columns.
         if (!$mysql) {
             $sql = preg_replace('/\{\{STR\}\}\(\d+\)/', '{{STR}}', $sql) ?? $sql;
+        }
+
+        // "CREATE INDEX IF NOT EXISTS" is SQLite and MariaDB syntax; MySQL
+        // rejects it outright. Dropping the clause keeps one migration file
+        // working on all three, with the duplicate-index error handled by
+        // the caller.
+        if ($mysql) {
+            $sql = preg_replace(
+                '/^(\s*CREATE\s+(?:UNIQUE\s+)?INDEX\s+)IF\s+NOT\s+EXISTS\s+/i',
+                '$1',
+                $sql
+            ) ?? $sql;
         }
 
         return strtr($sql, $map);

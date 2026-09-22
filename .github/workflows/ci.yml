@@ -6,6 +6,69 @@ on:
   pull_request:
 
 jobs:
+  # The suite runs against both engines. MySQL is the default the app
+  # ships with, so a migration that only works on SQLite must fail CI.
+  mysql:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_DATABASE: qroute_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql, gd, mbstring, intl
+          coverage: none
+
+      - name: Wait for MySQL
+        run: |
+          for i in $(seq 1 30); do
+            mysqladmin ping -h 127.0.0.1 -P 3306 -u root --silent && break
+            sleep 2
+          done
+
+      - name: Test suite against MySQL 8
+        env:
+          DB_DRIVER: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          DB_NAME: qroute_test
+          DB_USER: root
+          DB_PASS: ''
+        run: php tests/run.php
+
+      - name: Migrations apply and re-apply cleanly on MySQL 8
+        env:
+          DB_DRIVER: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          DB_NAME: qroute_app
+          DB_USER: root
+          DB_PASS: ''
+          APP_KEY: base64:Y2lrZXljaWtleWNpa2V5Y2lrZXljaWtleWNpaz0=
+        run: |
+          mysql -h 127.0.0.1 -u root -e "CREATE DATABASE qroute_app CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          php bin/console migrate
+          php bin/console migrate
+          # Replaying every statement onto an existing schema must not error,
+          # since MySQL has no "CREATE INDEX IF NOT EXISTS".
+          mysql -h 127.0.0.1 -u root qroute_app -e "DELETE FROM migrations;"
+          php bin/console migrate
+          php bin/console seed ci@example.test ci-password-1234
+          php bin/console rollup
+          php bin/console rollup
+          php bin/console stats
+
   test:
     runs-on: ubuntu-latest
     strategy:

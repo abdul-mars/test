@@ -98,17 +98,58 @@ final class TestRunner
     }
 }
 
-/** Builds a throwaway in-memory database with the schema applied. */
+/**
+ * Builds a throwaway database with the schema applied.
+ *
+ * Defaults to in-memory SQLite so the suite runs anywhere with no setup.
+ * Set DB_DRIVER=mysql (plus the usual DB_* variables) to run the identical
+ * assertions against MySQL or MariaDB, which is how the portability of the
+ * migrations and the driver-specific upsert paths is actually verified
+ * rather than assumed.
+ */
 function test_database(): void
 {
-    Config::set('DB_DRIVER', 'sqlite');
-    Config::set('DB_PATH', ':memory:');
     Config::set('APP_KEY', 'base64:' . base64_encode(str_repeat('t', 32)));
     Config::set('APP_URL', 'https://qrt.test');
     Config::set('BLOCK_PRIVATE_DNS', 'false');
     Config::set('TRUSTED_PROXIES', '');
 
-    Database::reset();
+    $driver = strtolower((string) (getenv('DB_DRIVER') ?: 'sqlite'));
+
+    if ($driver === 'mysql') {
+        Config::set('DB_DRIVER', 'mysql');
+        foreach (['DB_HOST' => '127.0.0.1', 'DB_PORT' => '3306', 'DB_USER' => 'root', 'DB_PASS' => ''] as $k => $default) {
+            Config::set($k, (string) (getenv($k) !== false ? getenv($k) : $default));
+        }
+        // Never run destructively against a database someone might be using.
+        $name = (string) (getenv('DB_NAME') ?: 'qroute_test');
+        if (!str_contains($name, 'test')) {
+            fwrite(STDERR, "Refusing to run tests against database '{$name}': the name must contain 'test'.\n");
+            exit(2);
+        }
+        Config::set('DB_NAME', $name);
+
+        Database::reset();
+        $db = Database::instance();
+        // Start from an empty schema so each run is independent.
+        $db->pdo()->exec('SET FOREIGN_KEY_CHECKS = 0');
+        foreach ($db->all('SHOW TABLES') as $row) {
+            $table = (string) array_values($row)[0];
+            $db->pdo()->exec('DROP TABLE IF EXISTS ' . $db->quoteIdent($table));
+        }
+        $db->pdo()->exec('SET FOREIGN_KEY_CHECKS = 1');
+    } else {
+        Config::set('DB_DRIVER', 'sqlite');
+        Config::set('DB_PATH', ':memory:');
+        Database::reset();
+    }
+
     $migrator = new Migrator(Database::instance(), __DIR__ . '/../migrations');
     $migrator->migrate();
+}
+
+/** Names the engine the suite is currently running against. */
+function test_driver(): string
+{
+    return Database::instance()->driver();
 }

@@ -5,8 +5,10 @@ goes forever, and send each scan somewhere different depending on who is
 scanning it.
 
 No framework, no Composer dependencies, no build step. It runs on a stock
-PHP 8.2+ install with SQLite — which means a $4/month box or a shared host
-is a perfectly reasonable place to put it.
+PHP 8.2+ install with **MySQL or MariaDB**, so XAMPP, MAMP, Laragon or any
+shared host works out of the box. SQLite is supported by the same migrations
+if you ever want a deployment with no database server, but nothing requires
+it.
 
 ---
 
@@ -65,21 +67,78 @@ Values inside a condition are OR'd; conditions are AND'd.
 | ![Interstitial](docs/screenshots/08-interstitial.png) | ![Dark mode](docs/screenshots/06-landing-dark.png) |
 | **Free-tier interstitial** — the ad slot and the upgrade lever | **Dark mode** — follows the system, toggle is remembered |
 
-## Quick start
+## Quick start (XAMPP / MySQL)
+
+**1. Start MySQL.** Open the XAMPP Control Panel and start **Apache** and
+**MySQL**.
+
+**2. Create the database.** Open phpMyAdmin at
+<http://localhost/phpmyadmin>, click **New**, name it `qroute`, choose the
+collation `utf8mb4_unicode_ci`, and click **Create**. Or from a terminal:
+
+```bash
+mysql -u root -e "CREATE DATABASE qroute CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+```
+
+**3. Put the code where XAMPP can reach it** — `C:\xampp\htdocs\qroute` on
+Windows, `/Applications/XAMPP/htdocs/qroute` on macOS:
 
 ```bash
 git clone <this repo> qroute && cd qroute
+```
 
+**4. Configure it:**
+
+```bash
 cp .env.example .env
-php bin/console key:generate        # paste the result into APP_KEY
-php bin/console migrate
-php bin/console seed                # optional: demo account + 30 days of data
+php bin/console key:generate        # paste the result into APP_KEY in .env
+```
 
+The database settings in `.env.example` already match a stock XAMPP install:
+user `root`, empty password, `127.0.0.1:3306`. If you have set a MySQL root
+password, put it in `DB_PASS`.
+
+**5. Create the tables, and some demo data to look at:**
+
+```bash
+php bin/console migrate
+php bin/console seed                # optional: demo account + 30 days of scans
+```
+
+**6. Run it.** The simplest way, needing no Apache configuration:
+
+```bash
 php -S 127.0.0.1:8000 -t public public/index.php
 ```
 
 Open <http://127.0.0.1:8000>. The seeded login is `demo@qroute.test` /
 `demo-password-123`.
+
+> **`php` is not a recognised command?** XAMPP ships PHP but does not always
+> put it on your PATH. Use the full path instead:
+> `C:\xampp\php\php.exe bin\console migrate` on Windows, or
+> `/Applications/XAMPP/bin/php bin/console migrate` on macOS.
+
+### Serving it through XAMPP's Apache instead
+
+Point a virtual host at the **`public/`** directory, never at the project
+root. `public/` is the only directory that should be web-reachable, and
+`.env` deliberately sits above it. In `httpd-vhosts.conf`:
+
+```apache
+<VirtualHost *:80>
+    DocumentRoot "C:/xampp/htdocs/qroute/public"
+    ServerName qroute.local
+    <Directory "C:/xampp/htdocs/qroute/public">
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+```
+
+Add `127.0.0.1 qroute.local` to your hosts file, restart Apache, and set
+`APP_URL=http://qroute.local`. The included `public/.htaccess` handles the
+rewrites.
 
 > Set `APP_URL` to the real public origin **before printing anything** — it is
 > the address baked into every code you generate.
@@ -111,7 +170,7 @@ src/
     Plan.php            Plans, quotas and feature gating
   Controllers/          One per surface; ApiController is separate and cookie-free
   views/                Plain PHP templates, escaped by default
-migrations/             Forward-only, portable across SQLite and MySQL
+migrations/             Forward-only, portable across MySQL, MariaDB and SQLite
 tests/run.php           Dependency-free test suite
 ```
 
@@ -193,10 +252,15 @@ aggregated into daily counts, so a two-year chart never touches raw rows.
 
 ### Scaling
 
-SQLite in WAL mode comfortably handles a few hundred scans per second on one
-box. Beyond that set `DB_DRIVER=mysql` — the same migrations cover both. Set
-`REDIS_HOST` to move rate limiting off SQL. The app is stateless apart from
-the database, so it scales horizontally without sticky sessions.
+MySQL and MariaDB are the default and handle the redirect path comfortably:
+a scan is one indexed lookup on `links.slug` plus rule evaluation in memory.
+Set `REDIS_HOST` to move rate limiting off SQL once scan volume justifies it.
+The app is stateless apart from the database, so it scales horizontally
+without sticky sessions.
+
+`DB_DRIVER=sqlite` runs the same migrations with no database server at all,
+which is handy for a quick local look or a small single-box deployment. In
+WAL mode it comfortably handles a few hundred scans per second.
 
 ## Taking payments
 
@@ -211,10 +275,19 @@ defaults to off and must stay off in production.
 ## Testing
 
 ```bash
-php tests/run.php
+php tests/run.php                   # SQLite, no setup needed
+
+# Or run the identical assertions against MySQL / MariaDB:
+mysql -u root -e "CREATE DATABASE qroute_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+DB_DRIVER=mysql DB_NAME=qroute_test DB_USER=root DB_PASS= php tests/run.php
 ```
 
-217 assertions covering the QR encoder against known-good fixtures and
+The suite runs against either engine, which is how the portability of the
+migrations and the driver-specific upsert paths is verified rather than
+assumed. The MySQL path refuses to run unless the database name contains
+"test", so it cannot be pointed at real data.
+
+235 assertions covering the QR encoder against known-good fixtures and
 structural invariants, the rule engine (including overnight schedule
 wrap-around and timezone handling), URL validation, device and bot detection,
 authentication and lockout, CSRF, quotas, analytics rollup correctness, the
